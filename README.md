@@ -3,55 +3,55 @@
 A fast-paced top-down roguelite where every run lasts exactly 60 seconds and death makes you stronger.
 
 ## Overview
-- Purpose: Define, build, and ship sixty with a clean, maintainable workflow.
+- Purpose: Build and ship the first playable vertical slice of SIXTY in Unity.
 - Owner: `Snowy7`
-- Audience: Unity developers, indie game collaborators, and players interested in the project
-
-## Features
-- Organized project structure and conventions
-- Documentation-first development workflow
-- Ready for CI/CD and team collaboration
+- Audience: Unity developers, indie game collaborators, and players interested in the project.
 
 ## Tech Stack
-- Runtime: _Document your runtime here_
-- Framework: _Document your framework here_
-- Tooling: _Document linting/testing/build tools here_
+- Engine: Unity `2022.3 LTS`
+- Rendering: URP
+- Input: Unity Input System (`com.unity.inputsystem`)
 
-## Getting Started
-1. Clone the repository.
-2. Install dependencies.
-3. Configure environment variables.
-4. Run the project locally.
+## Current Gameplay Slice
+Implemented from Week 1 high-priority tasks:
+- Player movement (`8 m/s`) and top-down mouse/gamepad aiming
+- Dash (`25 m/s`, `0.15s`, `2.0s` cooldown, `0.12s` i-frames)
+- Shooting loop + projectile pipeline
+- Pulse Rifle data model (`8/s`, `12` damage default values in `WeaponDefinition`)
+- Global time system (base `60s`, `+10s` per death, cap `300s`)
+- Damage-to-time loss (default `-2s`) and clock pickup (`+5s`)
 
-## Environment Variables
-Create a `.env` file (or platform-specific equivalent) and define required values.  
-Keep secrets out of source control.
+## Quick Scene Setup (SampleScene)
+1. Create an empty `GameObject` named `TimeManager` and add `TimeManager` component.
+2. Create a `Player` object with:
+- `Rigidbody` (gravity off, freeze rotation on X/Y/Z)
+- Collider (Capsule or Box)
+- `PlayerController`
+- Child object `WeaponMount` with `WeaponController` on it (assign to `PlayerController.weaponController`)
+3. Create a `WeaponDefinition` asset from `Create > Sixty > Combat > Weapon Definition` and set Pulse Rifle values.
+4. Create a simple projectile prefab:
+- Small primitive + trigger collider
+- Add `Projectile` script
+- Assign this prefab to the `WeaponDefinition`.
+5. Assign input actions:
+- In `PlayerController`, set `Input Actions` to `Assets/InputSystem_Actions.inputactions`.
+6. Add one test enemy/hazard:
+- Collider marked trigger
+- `ContactTimeDamage` script
+7. Add one pickup:
+- Trigger collider
+- `ClockPickup` script (`timeGranted = 5`).
 
-## Development
-Use these standard workflows:
-- Run local development server
-- Run test suite
-- Run lint and formatting checks
-- Build production artifacts
-
-## Project Structure
-```text
-.
-|-- src/
-|-- tests/
-|-- docs/
-|-- README.md
-```
-
-## Testing
-- Add unit tests for core logic
-- Add integration tests for key flows
-- Keep tests deterministic and fast
-
-## Deployment
-- Define deployment target(s)
-- Add build and release pipeline
-- Verify runtime configuration in each environment
+## Script Map
+- `Assets/Scripts/Core/TimeManager.cs`
+- `Assets/Scripts/Player/PlayerController.cs`
+- `Assets/Scripts/Combat/WeaponDefinition.cs`
+- `Assets/Scripts/Combat/WeaponController.cs`
+- `Assets/Scripts/Combat/Projectile.cs`
+- `Assets/Scripts/Combat/IDamageable.cs`
+- `Assets/Scripts/Combat/Health.cs`
+- `Assets/Scripts/Combat/ContactTimeDamage.cs`
+- `Assets/Scripts/World/ClockPickup.cs`
 
 ## Contributing
 1. Create a branch for your change.
