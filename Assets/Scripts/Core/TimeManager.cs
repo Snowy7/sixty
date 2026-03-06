@@ -1,10 +1,12 @@
 using System;
+using Ia.Core.Events;
+using Ia.Core.Update;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace Sixty.Core
 {
-    public class TimeManager : MonoBehaviour
+    public class TimeManager : IaBehaviour
     {
         private const string DeathCountPrefsKey = "Sixty.DeathCount";
 
@@ -19,6 +21,10 @@ namespace Sixty.Core
         public float TimeRemaining { get; private set; }
         public int DeathCount { get; private set; }
         public bool IsOutOfTime => TimeRemaining <= 0f;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.World;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
         public event Action<float, float> OnTimeChanged;
         public event Action<int> OnDeathCountChanged;
@@ -26,7 +32,7 @@ namespace Sixty.Core
 
         private bool hasTimedOut;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             if (Instance != null && Instance != this)
             {
@@ -39,14 +45,22 @@ namespace Sixty.Core
             ResetRunClock();
         }
 
-        private void Update()
+        protected override void OnIaDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
+
+        public override void OnIaUpdate(float deltaTime)
         {
             if (hasTimedOut)
             {
                 return;
             }
 
-            Tick(Time.deltaTime);
+            Tick(deltaTime);
         }
 
         public float GetStartingTimeForCurrentDeathCount()
@@ -60,6 +74,7 @@ namespace Sixty.Core
             hasTimedOut = false;
             TimeRemaining = GetStartingTimeForCurrentDeathCount();
             OnTimeChanged?.Invoke(TimeRemaining, 0f);
+            IaEventBus.Publish(new TimeChangedEvent(TimeRemaining, 0f));
         }
 
         public void Tick(float deltaSeconds)
@@ -104,6 +119,7 @@ namespace Sixty.Core
 
             TimeRemaining = clamped;
             OnTimeChanged?.Invoke(TimeRemaining, delta);
+            IaEventBus.Publish(new TimeChangedEvent(TimeRemaining, delta));
 
             if (TimeRemaining <= 0f)
             {
@@ -125,6 +141,8 @@ namespace Sixty.Core
 
             OnDeathCountChanged?.Invoke(DeathCount);
             OnTimeOut?.Invoke();
+            IaEventBus.Publish(new DeathCountChangedEvent(DeathCount));
+            IaEventBus.Publish(new TimeOutEvent(DeathCount));
 
             if (restartSceneOnTimeout)
             {
@@ -132,5 +150,89 @@ namespace Sixty.Core
                 SceneManager.LoadScene(activeScene.buildIndex);
             }
         }
+    }
+
+    public struct TimeChangedEvent
+    {
+        public float Remaining;
+        public float Delta;
+
+        public TimeChangedEvent(float remaining, float delta)
+        {
+            Remaining = remaining;
+            Delta = delta;
+        }
+    }
+
+    public struct DeathCountChangedEvent
+    {
+        public int DeathCount;
+
+        public DeathCountChangedEvent(int deathCount)
+        {
+            DeathCount = deathCount;
+        }
+    }
+
+    public struct TimeOutEvent
+    {
+        public int DeathCount;
+
+        public TimeOutEvent(int deathCount)
+        {
+            DeathCount = deathCount;
+        }
+    }
+
+    public struct RoomChangedEvent
+    {
+        public int Room;
+        public int TotalRooms;
+
+        public RoomChangedEvent(int room, int totalRooms)
+        {
+            Room = room;
+            TotalRooms = totalRooms;
+        }
+    }
+
+    public struct RoomTypeChangedEvent
+    {
+        public int Room;
+        public int TotalRooms;
+        public int RoomType;
+
+        public RoomTypeChangedEvent(int room, int totalRooms, int roomType)
+        {
+            Room = room;
+            TotalRooms = totalRooms;
+            RoomType = roomType;
+        }
+    }
+
+    public struct RoomClearedEvent
+    {
+        public int Room;
+        public int TotalRooms;
+
+        public RoomClearedEvent(int room, int totalRooms)
+        {
+            Room = room;
+            TotalRooms = totalRooms;
+        }
+    }
+
+    public struct EnemiesRemainingChangedEvent
+    {
+        public int Remaining;
+
+        public EnemiesRemainingChangedEvent(int remaining)
+        {
+            Remaining = remaining;
+        }
+    }
+
+    public struct RunWonEvent
+    {
     }
 }

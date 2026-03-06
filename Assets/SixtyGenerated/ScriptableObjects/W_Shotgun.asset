@@ -15,6 +15,6 @@ MonoBehaviour:
   weaponName: Shotgun
   fireRate: 1.5
   damage: 8
-  projectilePrefab: {fileID: 3216124588814673373, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
+  projectilePrefab: {fileID: 7870201749674449126, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
   projectileSpeed: 40
   projectileLifetime: 0.8

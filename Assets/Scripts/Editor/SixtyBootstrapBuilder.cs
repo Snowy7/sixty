@@ -10,6 +10,7 @@ using Sixty.Gameplay;
 using Sixty.Player;
 using Sixty.UI;
 using Sixty.World;
+using Ia.Core.Update;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -43,6 +44,8 @@ namespace Sixty.EditorTools
 
             public Material floorMaterial;
             public Material floorTrimMaterial;
+            public Material floorPerformanceMaterial;
+            public Material floorTrimPerformanceMaterial;
             public Material wallMaterial;
             public Material coverMaterial;
             public Material accentMaterial;
@@ -105,6 +108,68 @@ namespace Sixty.EditorTools
                 "OK");
         }
 
+        [MenuItem("Tools/Sixty/Repair Missing Scripts (Generated)")]
+        public static void RepairMissingScriptsGenerated()
+        {
+            int removedCount = 0;
+            int addedCount = 0;
+
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { PrefabsFolder });
+            for (int i = 0; i < prefabGuids.Length; i++)
+            {
+                string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+                GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
+                if (root == null)
+                {
+                    continue;
+                }
+
+                int before = CountMissingScriptsRecursive(root);
+                if (before > 0)
+                {
+                    RemoveMissingScriptsRecursive(root);
+                    removedCount += before;
+                }
+
+                if (EnsureEnemyPrefabComponents(root))
+                {
+                    addedCount++;
+                }
+
+                PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.IsValid() && activeScene.isLoaded)
+            {
+                GameObject[] roots = activeScene.GetRootGameObjects();
+                for (int i = 0; i < roots.Length; i++)
+                {
+                    GameObject root = roots[i];
+                    int before = CountMissingScriptsRecursive(root);
+                    if (before > 0)
+                    {
+                        RemoveMissingScriptsRecursive(root);
+                        removedCount += before;
+                    }
+
+                    if (EnsureEnemyPrefabComponents(root))
+                    {
+                        addedCount++;
+                    }
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            EditorUtility.DisplayDialog(
+                "Missing Script Repair",
+                $"Removed approximately {removedCount} missing component references.\nReattached/ensured enemy impact components on {addedCount} root objects.",
+                "OK");
+        }
+
         private static BootstrapAssets CreateOrUpdateAssets()
         {
             InputActionAsset inputActions = ResolveInputActionsAsset();
@@ -157,70 +222,27 @@ namespace Sixty.EditorTools
                     },
                     $"{MaterialsFolder}/M_Accent.mat",
                     new Color(0.19f, 0.55f, 0.68f)),
-                playerMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Blue_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Player.mat",
-                    new Color(0.35f, 0.78f, 1f)),
-                playerProjectileMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Light_Sea_Green_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_PlayerProjectile.mat",
-                    new Color(0.62f, 0.9f, 1f)),
-                enemyProjectileMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Red_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_EnemyProjectile.mat",
-                    new Color(1f, 0.45f, 0.35f)),
-                pickupMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Yellow_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_ClockPickup.mat",
-                    new Color(1f, 0.85f, 0.25f)),
-                droneMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Orange_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Drone.mat",
-                    new Color(1f, 0.57f, 0.32f)),
-                turretMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Yellow_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Turret.mat",
-                    new Color(1f, 0.72f, 0.28f)),
-                hunterMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Orange_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Hunter.mat",
-                    new Color(1f, 0.46f, 0.22f)),
-                tankMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Red_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Tank.mat",
-                    new Color(0.82f, 0.36f, 0.14f)),
-                bossMaterial = LoadMaterialFromPaths(
-                    new[]
-                    {
-                        $"{ScalableMaterialsFolder}/Violet_Prototype.mat"
-                    },
-                    $"{MaterialsFolder}/M_Boss.mat",
-                    new Color(0.78f, 0.18f, 0.12f))
+                // Use generated standard URP materials for gameplay actors/projectiles so hit flash tinting is always visible.
+                playerMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Player.mat", new Color(0.35f, 0.78f, 1f)),
+                playerProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_PlayerProjectile.mat", new Color(0.62f, 0.9f, 1f)),
+                enemyProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_EnemyProjectile.mat", new Color(1f, 0.45f, 0.35f)),
+                pickupMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_ClockPickup.mat", new Color(1f, 0.85f, 0.25f)),
+                droneMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Drone.mat", new Color(1f, 0.57f, 0.32f)),
+                turretMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Turret.mat", new Color(1f, 0.72f, 0.28f)),
+                hunterMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Hunter.mat", new Color(1f, 0.46f, 0.22f)),
+                tankMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Tank.mat", new Color(0.82f, 0.36f, 0.14f)),
+                bossMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Boss.mat", new Color(0.78f, 0.18f, 0.12f))
             };
+
+            assets.floorPerformanceMaterial = CreateOrUpdateCheapSurfaceMaterial(
+                $"{MaterialsFolder}/M_Floor_Perf.mat",
+                assets.floorMaterial,
+                new Color(0.18f, 0.2f, 0.24f));
+
+            assets.floorTrimPerformanceMaterial = CreateOrUpdateCheapSurfaceMaterial(
+                $"{MaterialsFolder}/M_FloorTrim_Perf.mat",
+                assets.floorTrimMaterial,
+                new Color(0.24f, 0.27f, 0.32f));
 
             assets.gameplayVolumeProfile = CreateOrUpdateGameplayVolumeProfile($"{ScriptableFolder}/VP_GameplayFeel.asset");
 
@@ -266,8 +288,16 @@ namespace Sixty.EditorTools
                 maxHealth = 30f,
                 destroyOnDeath = true,
                 addChaser = true,
-                moveSpeed = 5.3f,
-                stoppingDistance = 1.0f,
+                moveSpeed = 4.9f,
+                stoppingDistance = 0.95f,
+                chaserMoveMode = EnemyChaser.MovementMode.ChargeBurst,
+                chaserChargeSpeedMultiplier = 3.3f,
+                chaserChargeApproachSpeedMultiplier = 1.05f,
+                chaserChargeDuration = 0.24f,
+                chaserChargeCooldown = 0.95f,
+                chaserChargeMinRange = 1.4f,
+                chaserChargeMaxRange = 16f,
+                chaserChargeTurnMultiplier = 0.5f,
                 addContactDamage = true,
                 contactDamage = 2f,
                 contactCooldown = 0.35f,
@@ -291,10 +321,14 @@ namespace Sixty.EditorTools
                 addContactDamage = false,
                 addShooter = true,
                 enemyProjectilePrefab = assets.enemyProjectilePrefab,
-                shooterRate = 1.1f,
+                shooterRate = 0.95f,
                 shooterRange = 20f,
                 shooterDamageAsTimeLoss = 2f,
                 shooterProjectileSpeed = 15f,
+                shooterFireMode = EnemyShooter.FireMode.Burst,
+                shooterBurstCount = 2,
+                shooterBurstInterval = 0.12f,
+                shooterWindupSeconds = 0.24f,
                 impactKnockback = 2f,
                 impactKillKnockback = 3.2f,
                 impactStunDuration = 0.08f
@@ -310,17 +344,30 @@ namespace Sixty.EditorTools
                 maxHealth = 40f,
                 destroyOnDeath = true,
                 addChaser = true,
-                moveSpeed = 4.4f,
-                stoppingDistance = 4f,
+                moveSpeed = 4.6f,
+                stoppingDistance = 4.9f,
+                chaserMoveMode = EnemyChaser.MovementMode.OrbitStrafe,
+                chaserOrbitPreferredDistance = 6.4f,
+                chaserOrbitStrafeWeight = 1.2f,
+                chaserOrbitApproachWeight = 0.8f,
+                chaserOrbitDirectionFlipInterval = 1.35f,
+                chaserOrbitSpeedMultiplier = 1.05f,
                 addContactDamage = true,
                 contactDamage = 2f,
                 contactCooldown = 0.45f,
                 addShooter = true,
                 enemyProjectilePrefab = assets.enemyProjectilePrefab,
-                shooterRate = 1.4f,
-                shooterRange = 16f,
+                shooterRate = 1.55f,
+                shooterRange = 18f,
+                shooterMinimumRange = 3.2f,
                 shooterDamageAsTimeLoss = 2f,
                 shooterProjectileSpeed = 14f,
+                shooterFireMode = EnemyShooter.FireMode.Burst,
+                shooterBurstCount = 3,
+                shooterBurstInterval = 0.09f,
+                shooterWindupSeconds = 0.08f,
+                shooterUsePredictiveAim = true,
+                shooterPredictiveLeadSeconds = 0.16f,
                 impactKnockback = 2.35f,
                 impactKillKnockback = 3.8f,
                 impactStunDuration = 0.09f
@@ -336,10 +383,13 @@ namespace Sixty.EditorTools
                 maxHealth = 120f,
                 destroyOnDeath = true,
                 addChaser = true,
-                moveSpeed = 2.3f,
-                stoppingDistance = 1.25f,
+                moveSpeed = 2.2f,
+                stoppingDistance = 1.2f,
+                chaserMoveMode = EnemyChaser.MovementMode.HeavyTank,
+                chaserHeavySpeedMultiplier = 0.8f,
+                chaserHeavyTurnMultiplier = 0.5f,
                 addContactDamage = true,
-                contactDamage = 3f,
+                contactDamage = 3.2f,
                 contactCooldown = 0.45f,
                 addShooter = false,
                 enemyProjectilePrefab = assets.enemyProjectilePrefab,
@@ -358,17 +408,30 @@ namespace Sixty.EditorTools
                 maxHealth = 800f,
                 destroyOnDeath = true,
                 addChaser = true,
-                moveSpeed = 2.7f,
-                stoppingDistance = 7.5f,
+                moveSpeed = 2.6f,
+                stoppingDistance = 7.2f,
+                chaserMoveMode = EnemyChaser.MovementMode.HeavyTank,
+                chaserHeavySpeedMultiplier = 0.9f,
+                chaserHeavyTurnMultiplier = 0.72f,
                 addContactDamage = true,
                 contactDamage = 4f,
                 contactCooldown = 0.35f,
                 addShooter = true,
                 enemyProjectilePrefab = assets.enemyProjectilePrefab,
-                shooterRate = 2.2f,
+                shooterRate = 1.45f,
                 shooterRange = 22f,
+                shooterMinimumRange = 4.5f,
                 shooterDamageAsTimeLoss = 3f,
                 shooterProjectileSpeed = 17f,
+                shooterFireMode = EnemyShooter.FireMode.Single,
+                shooterWindupSeconds = 0.12f,
+                shooterUsePredictiveAim = true,
+                shooterPredictiveLeadSeconds = 0.14f,
+                addBossPhaseController = true,
+                bossPhase2MoveMultiplier = 1.2f,
+                bossPhase3MoveMultiplier = 1.38f,
+                bossPhase2FireRateMultiplier = 1.35f,
+                bossPhase3FireRateMultiplier = 1.75f,
                 impactKnockback = 1.3f,
                 impactKillKnockback = 2.3f,
                 impactStunDuration = 0.05f
@@ -384,6 +447,9 @@ namespace Sixty.EditorTools
             Transform[] spawnPoints = BuildSpawnPoints(world.transform);
 
             GameObject gameplayRoot = new GameObject("Gameplay");
+            GameObject iaBootstrapGo = new GameObject("IAFrameworkBootstrap");
+            iaBootstrapGo.transform.SetParent(gameplayRoot.transform);
+            iaBootstrapGo.AddComponent<IaBootstrap>();
 
             GameObject timeManagerGo = new GameObject("TimeManager");
             timeManagerGo.transform.SetParent(gameplayRoot.transform);
@@ -411,7 +477,7 @@ namespace Sixty.EditorTools
             feelAudio.loop = false;
             feelAudio.spatialBlend = 0f;
             TopDownCameraFollow follow = mainCamera.GetComponent<TopDownCameraFollow>();
-            ScreenFlashOverlay overlay = BuildHud(runDirector);
+            ScreenFlashOverlay overlay = BuildHud(runDirector, assets);
             ConfigureSerialized(gameFeel, so =>
             {
                 so.FindProperty("cameraFollow").objectReferenceValue = follow;
@@ -437,9 +503,12 @@ namespace Sixty.EditorTools
             baseFloor.transform.SetParent(parent);
             baseFloor.transform.position = Vector3.zero;
             baseFloor.transform.localScale = new Vector3(5.6f, 1f, 5.6f);
-            baseFloor.GetComponent<Renderer>().sharedMaterial = assets.floorMaterial;
+            Renderer baseFloorRenderer = baseFloor.GetComponent<Renderer>();
+            baseFloorRenderer.sharedMaterial = assets.floorPerformanceMaterial != null ? assets.floorPerformanceMaterial : assets.floorMaterial;
+            ConfigureEnvironmentRenderer(baseFloorRenderer, true);
 
-            CreateBlock(parent, assets.floorTrimMaterial, new Vector3(0f, 0.06f, 0f), new Vector3(44f, 0.12f, 44f), "ArenaPlate", false);
+            GameObject arenaPlate = CreateBlock(parent, assets.floorTrimPerformanceMaterial != null ? assets.floorTrimPerformanceMaterial : assets.floorTrimMaterial, new Vector3(0f, 0.06f, 0f), new Vector3(44f, 0.12f, 44f), "ArenaPlate", false);
+            ConfigureEnvironmentRenderer(arenaPlate.GetComponent<Renderer>(), true);
             CreateBlock(parent, assets.accentMaterial, new Vector3(0f, 0.11f, 0f), new Vector3(2.2f, 0.025f, 26f), "Guide_NorthSouth", false);
             CreateBlock(parent, assets.accentMaterial, new Vector3(0f, 0.11f, 0f), new Vector3(26f, 0.025f, 2.2f), "Guide_EastWest", false);
 
@@ -450,18 +519,26 @@ namespace Sixty.EditorTools
 
             Vector3[] coverPositions =
             {
-                new Vector3(0f, 0.9f, 8f),
-                new Vector3(0f, 0.9f, -8f),
-                new Vector3(8f, 0.9f, 0f),
-                new Vector3(-8f, 0.9f, 0f)
+                new Vector3(-10f, 0.9f, -10f),
+                new Vector3(10f, 0.9f, -10f),
+                new Vector3(-10f, 0.9f, 10f),
+                new Vector3(10f, 0.9f, 10f),
+                new Vector3(0f, 0.9f, -12f),
+                new Vector3(0f, 0.9f, 12f),
+                new Vector3(-12f, 0.9f, 0f),
+                new Vector3(12f, 0.9f, 0f)
             };
 
             Vector3[] coverScales =
             {
-                new Vector3(3.6f, 1.8f, 1.4f),
-                new Vector3(3.6f, 1.8f, 1.4f),
-                new Vector3(1.4f, 1.8f, 3.6f),
-                new Vector3(1.4f, 1.8f, 3.6f)
+                new Vector3(3f, 1.8f, 1.2f),
+                new Vector3(3f, 1.8f, 1.2f),
+                new Vector3(3f, 1.8f, 1.2f),
+                new Vector3(3f, 1.8f, 1.2f),
+                new Vector3(4.2f, 1.8f, 1.2f),
+                new Vector3(4.2f, 1.8f, 1.2f),
+                new Vector3(1.2f, 1.8f, 4.2f),
+                new Vector3(1.2f, 1.8f, 4.2f)
             };
 
             for (int i = 0; i < coverPositions.Length; i++)
@@ -524,7 +601,10 @@ namespace Sixty.EditorTools
             cam.transform.rotation = Quaternion.Euler(60f, 0f, 0f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.04f, 0.06f, 0.08f);
-            cam.allowHDR = true;
+            cam.allowHDR = false;
+            cam.allowMSAA = false;
+            cam.nearClipPlane = 0.15f;
+            cam.farClipPlane = 90f;
 
             cameraGo.AddComponent<AudioListener>();
             UniversalAdditionalCameraData cameraData = cameraGo.GetComponent<UniversalAdditionalCameraData>();
@@ -534,6 +614,10 @@ namespace Sixty.EditorTools
             }
 
             cameraData.renderPostProcessing = true;
+            cameraData.renderShadows = false;
+            cameraData.antialiasing = AntialiasingMode.None;
+            cameraData.requiresColorOption = CameraOverrideOption.Off;
+            cameraData.requiresDepthOption = CameraOverrideOption.Off;
             TopDownCameraFollow follow = cameraGo.AddComponent<TopDownCameraFollow>();
             follow.SetTarget(target);
 
@@ -547,13 +631,12 @@ namespace Sixty.EditorTools
             light.type = LightType.Directional;
             light.intensity = 1.08f;
             light.color = new Color(0.92f, 0.96f, 1f);
+            light.shadows = LightShadows.None;
             lightGo.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
 
             Vector3[] lightPositions =
             {
                 new Vector3(18f, 5f, 18f),
-                new Vector3(-18f, 5f, 18f),
-                new Vector3(18f, 5f, -18f),
                 new Vector3(-18f, 5f, -18f)
             };
 
@@ -563,8 +646,9 @@ namespace Sixty.EditorTools
                 Light fillLight = fill.AddComponent<Light>();
                 fillLight.type = LightType.Point;
                 fillLight.range = 17f;
-                fillLight.intensity = 1.25f;
+                fillLight.intensity = 0.85f;
                 fillLight.color = new Color(0.25f, 0.45f, 0.58f);
+                fillLight.shadows = LightShadows.None;
                 fill.transform.position = lightPositions[i];
             }
 
@@ -583,7 +667,7 @@ namespace Sixty.EditorTools
             return volume;
         }
 
-        private static ScreenFlashOverlay BuildHud(RunDirector runDirector)
+        private static ScreenFlashOverlay BuildHud(RunDirector runDirector, BootstrapAssets assets)
         {
             GameObject canvasGo = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             Canvas canvas = canvasGo.GetComponent<Canvas>();
@@ -598,13 +682,22 @@ namespace Sixty.EditorTools
             TextMeshProUGUI roomText = CreateHudText(canvas.transform, "RoomLabel", fontAsset, new Vector2(20f, -78f), 26, TextAlignmentOptions.TopLeft);
             TextMeshProUGUI enemiesText = CreateHudText(canvas.transform, "EnemiesLabel", fontAsset, new Vector2(20f, -112f), 26, TextAlignmentOptions.TopLeft);
             TextMeshProUGUI deathText = CreateHudText(canvas.transform, "DeathsLabel", fontAsset, new Vector2(20f, -146f), 26, TextAlignmentOptions.TopLeft);
+            TextMeshProUGUI weaponText = CreateHudText(canvas.transform, "WeaponLabel", fontAsset, new Vector2(20f, -180f), 26, TextAlignmentOptions.TopLeft);
             TextMeshProUGUI statusText = CreateHudText(canvas.transform, "StatusLabel", fontAsset, new Vector2(0f, -20f), 34, TextAlignmentOptions.Top);
+            TextMeshProUGUI rewardText = CreateHudText(canvas.transform, "RewardLabel", fontAsset, new Vector2(0f, -84f), 30, TextAlignmentOptions.Top);
 
             RectTransform statusRect = statusText.rectTransform;
             statusRect.anchorMin = new Vector2(0.5f, 1f);
             statusRect.anchorMax = new Vector2(0.5f, 1f);
             statusRect.pivot = new Vector2(0.5f, 1f);
             statusRect.anchoredPosition = new Vector2(0f, -20f);
+
+            RectTransform rewardRect = rewardText.rectTransform;
+            rewardRect.anchorMin = new Vector2(0.5f, 1f);
+            rewardRect.anchorMax = new Vector2(0.5f, 1f);
+            rewardRect.pivot = new Vector2(0.5f, 1f);
+            rewardRect.sizeDelta = new Vector2(1200f, 220f);
+            rewardRect.anchoredPosition = new Vector2(0f, -84f);
 
             GameObject overlayGo = new GameObject("ScreenFlashOverlay", typeof(RectTransform), typeof(Image), typeof(ScreenFlashOverlay));
             overlayGo.transform.SetParent(canvas.transform, false);
@@ -626,6 +719,10 @@ namespace Sixty.EditorTools
                 so.FindProperty("roomText").objectReferenceValue = roomText;
                 so.FindProperty("enemiesText").objectReferenceValue = enemiesText;
                 so.FindProperty("statusText").objectReferenceValue = statusText;
+                so.FindProperty("weaponText").objectReferenceValue = weaponText;
+                so.FindProperty("rewardText").objectReferenceValue = rewardText;
+                so.FindProperty("shotgunWeapon").objectReferenceValue = assets.shotgun;
+                so.FindProperty("chargeBeamWeapon").objectReferenceValue = assets.chargeBeam;
             });
 
             return overlayGo.GetComponent<ScreenFlashOverlay>();
@@ -687,6 +784,16 @@ namespace Sixty.EditorTools
 
                 so.FindProperty("bossPrefab").objectReferenceValue = assets.bossPrefab;
                 so.FindProperty("clockPickupPrefab").objectReferenceValue = assets.clockPickupPrefab;
+                so.FindProperty("rewardRoomChance").floatValue = 0.2f;
+                so.FindProperty("riskRoomChance").floatValue = 0.1f;
+                so.FindProperty("guaranteedCombatRooms").intValue = 2;
+                so.FindProperty("rewardClockPickups").intValue = 2;
+                so.FindProperty("riskGuaranteedClockPickups").intValue = 1;
+                so.FindProperty("riskEnemyMultiplier").floatValue = 1.35f;
+                so.FindProperty("roomEnemyScalePerRoom").floatValue = 0.45f;
+                so.FindProperty("lowTimePressureThreshold").floatValue = 20f;
+                so.FindProperty("lowTimeEnemyBonusMultiplier").floatValue = 0.55f;
+                so.FindProperty("maxAdditionalEnemiesFromPressure").intValue = 3;
 
                 SerializedProperty enemyList = so.FindProperty("enemyPrefabs");
                 enemyList.arraySize = 0;
@@ -732,14 +839,16 @@ namespace Sixty.EditorTools
             wall.GetComponent<Renderer>().sharedMaterial = material;
         }
 
-        private static void CreateBlock(Transform parent, Material material, Vector3 position, Vector3 scale, string name, bool withCollider = true)
+        private static GameObject CreateBlock(Transform parent, Material material, Vector3 position, Vector3 scale, string name, bool withCollider = true)
         {
             GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
             block.name = name;
             block.transform.SetParent(parent);
             block.transform.position = position;
             block.transform.localScale = scale;
-            block.GetComponent<Renderer>().sharedMaterial = material;
+            Renderer renderer = block.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            ConfigureEnvironmentRenderer(renderer, false);
             if (!withCollider)
             {
                 Collider collider = block.GetComponent<Collider>();
@@ -748,6 +857,8 @@ namespace Sixty.EditorTools
                     collider.enabled = false;
                 }
             }
+
+            return block;
         }
 
         private static void CreateDoorFrame(Transform parent, Material material, Vector3 position, Quaternion rotation, string name)
@@ -763,14 +874,16 @@ namespace Sixty.EditorTools
             CreateBlockLocal(root.transform, material, new Vector3(0f, 0.15f, 0f), new Vector3(6f, 0.08f, 0.7f), "FloorStrip");
         }
 
-        private static void CreateBlockLocal(Transform parent, Material material, Vector3 localPosition, Vector3 localScale, string name, bool withCollider = true)
+        private static GameObject CreateBlockLocal(Transform parent, Material material, Vector3 localPosition, Vector3 localScale, string name, bool withCollider = true)
         {
             GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
             block.name = name;
             block.transform.SetParent(parent);
             block.transform.localPosition = localPosition;
             block.transform.localScale = localScale;
-            block.GetComponent<Renderer>().sharedMaterial = material;
+            Renderer renderer = block.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            ConfigureEnvironmentRenderer(renderer, false);
             if (!withCollider)
             {
                 Collider collider = block.GetComponent<Collider>();
@@ -779,6 +892,8 @@ namespace Sixty.EditorTools
                     collider.enabled = false;
                 }
             }
+
+            return block;
         }
 
         private static GameObject CreatePlayerProjectilePrefab(BootstrapAssets assets)
@@ -834,6 +949,21 @@ namespace Sixty.EditorTools
             public bool addChaser;
             public float moveSpeed;
             public float stoppingDistance;
+            public EnemyChaser.MovementMode chaserMoveMode;
+            public float chaserOrbitPreferredDistance;
+            public float chaserOrbitStrafeWeight;
+            public float chaserOrbitApproachWeight;
+            public float chaserOrbitDirectionFlipInterval;
+            public float chaserOrbitSpeedMultiplier;
+            public float chaserChargeSpeedMultiplier;
+            public float chaserChargeApproachSpeedMultiplier;
+            public float chaserChargeDuration;
+            public float chaserChargeCooldown;
+            public float chaserChargeMinRange;
+            public float chaserChargeMaxRange;
+            public float chaserChargeTurnMultiplier;
+            public float chaserHeavySpeedMultiplier;
+            public float chaserHeavyTurnMultiplier;
             public bool addContactDamage;
             public float contactDamage;
             public float contactCooldown;
@@ -843,6 +973,22 @@ namespace Sixty.EditorTools
             public float shooterProjectileSpeed;
             public float shooterDamageAsTimeLoss;
             public float shooterRange;
+            public float shooterMinimumRange;
+            public bool shooterUsePredictiveAim;
+            public float shooterPredictiveLeadSeconds;
+            public float shooterWindupSeconds;
+            public EnemyShooter.FireMode shooterFireMode;
+            public int shooterBurstCount;
+            public float shooterBurstInterval;
+            public int shooterSpreadProjectiles;
+            public float shooterSpreadAngle;
+            public bool addBossPhaseController;
+            public float bossPhase2Threshold;
+            public float bossPhase3Threshold;
+            public float bossPhase2MoveMultiplier;
+            public float bossPhase3MoveMultiplier;
+            public float bossPhase2FireRateMultiplier;
+            public float bossPhase3FireRateMultiplier;
             public float impactKnockback;
             public float impactKillKnockback;
             public float impactStunDuration;
@@ -907,8 +1053,79 @@ namespace Sixty.EditorTools
                 EnemyChaser chaser = root.AddComponent<EnemyChaser>();
                 ConfigureSerialized(chaser, so =>
                 {
-                    so.FindProperty("moveSpeed").floatValue = parameters.moveSpeed;
-                    so.FindProperty("stoppingDistance").floatValue = parameters.stoppingDistance;
+                    so.FindProperty("moveSpeed").floatValue = parameters.moveSpeed > 0f ? parameters.moveSpeed : 4f;
+                    so.FindProperty("stoppingDistance").floatValue = parameters.stoppingDistance > 0f ? parameters.stoppingDistance : 1.2f;
+                    so.FindProperty("moveMode").enumValueIndex = (int)parameters.chaserMoveMode;
+
+                    if (parameters.chaserOrbitPreferredDistance > 0f)
+                    {
+                        so.FindProperty("orbitPreferredDistance").floatValue = parameters.chaserOrbitPreferredDistance;
+                    }
+
+                    if (parameters.chaserOrbitStrafeWeight > 0f)
+                    {
+                        so.FindProperty("orbitStrafeWeight").floatValue = parameters.chaserOrbitStrafeWeight;
+                    }
+
+                    if (parameters.chaserOrbitApproachWeight > 0f)
+                    {
+                        so.FindProperty("orbitApproachWeight").floatValue = parameters.chaserOrbitApproachWeight;
+                    }
+
+                    if (parameters.chaserOrbitDirectionFlipInterval > 0f)
+                    {
+                        so.FindProperty("orbitDirectionFlipInterval").floatValue = parameters.chaserOrbitDirectionFlipInterval;
+                    }
+
+                    if (parameters.chaserOrbitSpeedMultiplier > 0f)
+                    {
+                        so.FindProperty("orbitSpeedMultiplier").floatValue = parameters.chaserOrbitSpeedMultiplier;
+                    }
+
+                    if (parameters.chaserChargeSpeedMultiplier > 0f)
+                    {
+                        so.FindProperty("chargeSpeedMultiplier").floatValue = parameters.chaserChargeSpeedMultiplier;
+                    }
+
+                    if (parameters.chaserChargeApproachSpeedMultiplier > 0f)
+                    {
+                        so.FindProperty("chargeApproachSpeedMultiplier").floatValue = parameters.chaserChargeApproachSpeedMultiplier;
+                    }
+
+                    if (parameters.chaserChargeDuration > 0f)
+                    {
+                        so.FindProperty("chargeDuration").floatValue = parameters.chaserChargeDuration;
+                    }
+
+                    if (parameters.chaserChargeCooldown > 0f)
+                    {
+                        so.FindProperty("chargeCooldown").floatValue = parameters.chaserChargeCooldown;
+                    }
+
+                    if (parameters.chaserChargeMinRange > 0f)
+                    {
+                        so.FindProperty("chargeMinRange").floatValue = parameters.chaserChargeMinRange;
+                    }
+
+                    if (parameters.chaserChargeMaxRange > 0f)
+                    {
+                        so.FindProperty("chargeMaxRange").floatValue = parameters.chaserChargeMaxRange;
+                    }
+
+                    if (parameters.chaserChargeTurnMultiplier > 0f)
+                    {
+                        so.FindProperty("chargeTurnMultiplier").floatValue = parameters.chaserChargeTurnMultiplier;
+                    }
+
+                    if (parameters.chaserHeavySpeedMultiplier > 0f)
+                    {
+                        so.FindProperty("heavySpeedMultiplier").floatValue = parameters.chaserHeavySpeedMultiplier;
+                    }
+
+                    if (parameters.chaserHeavyTurnMultiplier > 0f)
+                    {
+                        so.FindProperty("heavyTurnMultiplier").floatValue = parameters.chaserHeavyTurnMultiplier;
+                    }
                 });
             }
 
@@ -933,6 +1150,75 @@ namespace Sixty.EditorTools
                     so.FindProperty("projectileLifetime").floatValue = 3f;
                     so.FindProperty("timeDamage").floatValue = parameters.shooterDamageAsTimeLoss <= 0f ? 2f : parameters.shooterDamageAsTimeLoss;
                     so.FindProperty("range").floatValue = parameters.shooterRange <= 0f ? 16f : parameters.shooterRange;
+                    so.FindProperty("minimumRange").floatValue = Mathf.Max(0f, parameters.shooterMinimumRange);
+                    so.FindProperty("usePredictiveAim").boolValue = parameters.shooterUsePredictiveAim;
+                    if (parameters.shooterPredictiveLeadSeconds > 0f)
+                    {
+                        so.FindProperty("predictiveLeadSeconds").floatValue = parameters.shooterPredictiveLeadSeconds;
+                    }
+
+                    if (parameters.shooterWindupSeconds > 0f)
+                    {
+                        so.FindProperty("windupSeconds").floatValue = parameters.shooterWindupSeconds;
+                    }
+
+                    so.FindProperty("fireMode").enumValueIndex = (int)parameters.shooterFireMode;
+                    if (parameters.shooterBurstCount > 0)
+                    {
+                        so.FindProperty("burstCount").intValue = parameters.shooterBurstCount;
+                    }
+
+                    if (parameters.shooterBurstInterval > 0f)
+                    {
+                        so.FindProperty("burstInterval").floatValue = parameters.shooterBurstInterval;
+                    }
+
+                    if (parameters.shooterSpreadProjectiles > 0)
+                    {
+                        so.FindProperty("spreadProjectiles").intValue = parameters.shooterSpreadProjectiles;
+                    }
+
+                    if (parameters.shooterSpreadAngle > 0f)
+                    {
+                        so.FindProperty("spreadAngle").floatValue = parameters.shooterSpreadAngle;
+                    }
+                });
+            }
+
+            if (parameters.addBossPhaseController)
+            {
+                EnemyBossPhaseController bossPhases = root.AddComponent<EnemyBossPhaseController>();
+                ConfigureSerialized(bossPhases, so =>
+                {
+                    if (parameters.bossPhase2Threshold > 0f && parameters.bossPhase2Threshold < 1f)
+                    {
+                        so.FindProperty("phase2Threshold").floatValue = parameters.bossPhase2Threshold;
+                    }
+
+                    if (parameters.bossPhase3Threshold > 0f && parameters.bossPhase3Threshold < 1f)
+                    {
+                        so.FindProperty("phase3Threshold").floatValue = parameters.bossPhase3Threshold;
+                    }
+
+                    if (parameters.bossPhase2MoveMultiplier > 0f)
+                    {
+                        so.FindProperty("phase2MoveMultiplier").floatValue = parameters.bossPhase2MoveMultiplier;
+                    }
+
+                    if (parameters.bossPhase3MoveMultiplier > 0f)
+                    {
+                        so.FindProperty("phase3MoveMultiplier").floatValue = parameters.bossPhase3MoveMultiplier;
+                    }
+
+                    if (parameters.bossPhase2FireRateMultiplier > 0f)
+                    {
+                        so.FindProperty("phase2FireRateMultiplier").floatValue = parameters.bossPhase2FireRateMultiplier;
+                    }
+
+                    if (parameters.bossPhase3FireRateMultiplier > 0f)
+                    {
+                        so.FindProperty("phase3FireRateMultiplier").floatValue = parameters.bossPhase3FireRateMultiplier;
+                    }
                 });
             }
 
@@ -969,7 +1255,11 @@ namespace Sixty.EditorTools
             WeaponController weaponController = weaponMount.AddComponent<WeaponController>();
             ConfigureSerialized(weaponController, so =>
             {
+                Projectile projectileComponent = assets.playerProjectilePrefab != null
+                    ? assets.playerProjectilePrefab.GetComponent<Projectile>()
+                    : null;
                 so.FindProperty("weapon").objectReferenceValue = assets.pulseRifle;
+                so.FindProperty("fallbackProjectilePrefab").objectReferenceValue = projectileComponent;
                 so.FindProperty("muzzle").objectReferenceValue = muzzle.transform;
                 so.FindProperty("alignProjectileHeightToOwner").boolValue = true;
                 so.FindProperty("projectileHeightOffsetFromOwner").floatValue = 0f;
@@ -1011,12 +1301,15 @@ namespace Sixty.EditorTools
                 AssetDatabase.CreateAsset(definition, path);
             }
 
-            definition.weaponName = weaponName;
-            definition.fireRate = fireRate;
-            definition.damage = damage;
-            definition.projectilePrefab = projectilePrefab != null ? projectilePrefab.GetComponent<Projectile>() : null;
-            definition.projectileSpeed = projectileSpeed;
-            definition.projectileLifetime = projectileLifetime;
+            Projectile projectileComponent = projectilePrefab != null ? projectilePrefab.GetComponent<Projectile>() : null;
+            SerializedObject so = new SerializedObject(definition);
+            so.FindProperty("weaponName").stringValue = weaponName;
+            so.FindProperty("fireRate").floatValue = fireRate;
+            so.FindProperty("damage").floatValue = damage;
+            so.FindProperty("projectilePrefab").objectReferenceValue = projectileComponent;
+            so.FindProperty("projectileSpeed").floatValue = projectileSpeed;
+            so.FindProperty("projectileLifetime").floatValue = projectileLifetime;
+            so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(definition);
             return definition;
@@ -1130,11 +1423,252 @@ namespace Sixty.EditorTools
             return material;
         }
 
+        private static Material CreateOrUpdateCheapSurfaceMaterial(string path, Material sourceMaterial, Color fallbackColor)
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Simple Lit");
+                if (shader == null)
+                {
+                    shader = Shader.Find("Universal Render Pipeline/Unlit");
+                }
+
+                if (shader == null)
+                {
+                    shader = Shader.Find("Standard");
+                }
+
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            Color color = ExtractMaterialColor(sourceMaterial, fallbackColor);
+            Texture baseMap = ExtractBaseTexture(sourceMaterial);
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", color);
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", color);
+            }
+
+            if (material.HasProperty("_BaseMap"))
+            {
+                material.SetTexture("_BaseMap", baseMap);
+            }
+
+            if (material.HasProperty("_MainTex"))
+            {
+                material.SetTexture("_MainTex", baseMap);
+            }
+
+            if (material.HasProperty("_Smoothness"))
+            {
+                material.SetFloat("_Smoothness", 0f);
+            }
+
+            if (material.HasProperty("_EmissionColor"))
+            {
+                material.SetColor("_EmissionColor", Color.black);
+            }
+
+            material.DisableKeyword("_EMISSION");
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Color ExtractMaterialColor(Material sourceMaterial, Color fallbackColor)
+        {
+            if (sourceMaterial == null)
+            {
+                return fallbackColor;
+            }
+
+            if (sourceMaterial.HasProperty("_BaseColor"))
+            {
+                return sourceMaterial.GetColor("_BaseColor");
+            }
+
+            if (sourceMaterial.HasProperty("_Color"))
+            {
+                return sourceMaterial.GetColor("_Color");
+            }
+
+            return fallbackColor;
+        }
+
+        private static Texture ExtractBaseTexture(Material sourceMaterial)
+        {
+            if (sourceMaterial == null)
+            {
+                return null;
+            }
+
+            if (sourceMaterial.HasProperty("_BaseMap"))
+            {
+                return sourceMaterial.GetTexture("_BaseMap");
+            }
+
+            if (sourceMaterial.HasProperty("_MainTex"))
+            {
+                return sourceMaterial.GetTexture("_MainTex");
+            }
+
+            return null;
+        }
+
+        private static void ConfigureEnvironmentRenderer(Renderer renderer, bool largeSurface)
+        {
+            if (renderer == null)
+            {
+                return;
+            }
+
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+            renderer.allowOcclusionWhenDynamic = false;
+
+            if (largeSurface)
+            {
+                renderer.rendererPriority = -10;
+            }
+
+            renderer.gameObject.isStatic = true;
+        }
+
         private static GameObject SaveAsPrefab(string path, GameObject tempRoot)
         {
+            RemoveMissingScriptsRecursive(tempRoot);
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(tempRoot, path);
             UnityEngine.Object.DestroyImmediate(tempRoot);
             return prefab;
+        }
+
+        private static void RemoveMissingScriptsRecursive(GameObject root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(root);
+            foreach (Transform child in root.transform)
+            {
+                RemoveMissingScriptsRecursive(child.gameObject);
+            }
+        }
+
+        private static int CountMissingScriptsRecursive(GameObject root)
+        {
+            if (root == null)
+            {
+                return 0;
+            }
+
+            int missing = 0;
+            Component[] components = root.GetComponents<Component>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                if (components[i] == null)
+                {
+                    missing++;
+                }
+            }
+
+            foreach (Transform child in root.transform)
+            {
+                missing += CountMissingScriptsRecursive(child.gameObject);
+            }
+
+            return missing;
+        }
+
+        private static bool EnsureEnemyPrefabComponents(GameObject root)
+        {
+            if (root == null)
+            {
+                return false;
+            }
+
+            bool changed = false;
+            if (root.GetComponent<Health>() != null && root.GetComponent<Rigidbody>() != null && root.GetComponent<EnemyImpactResponse>() == null)
+            {
+                EnemyImpactResponse impact = root.AddComponent<EnemyImpactResponse>();
+                ConfigureEnemyImpactDefaults(root.name, impact);
+                changed = true;
+            }
+
+            foreach (Transform child in root.transform)
+            {
+                if (EnsureEnemyPrefabComponents(child.gameObject))
+                {
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
+        private static void ConfigureEnemyImpactDefaults(string objectName, EnemyImpactResponse impact)
+        {
+            if (impact == null)
+            {
+                return;
+            }
+
+            float knockback = 2.4f;
+            float killKnockback = 3.8f;
+            float stunDuration = 0.08f;
+
+            if (!string.IsNullOrEmpty(objectName))
+            {
+                if (objectName.IndexOf("Drone", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    knockback = 2.6f;
+                    killKnockback = 4.1f;
+                    stunDuration = 0.1f;
+                }
+                else if (objectName.IndexOf("Turret", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    knockback = 2f;
+                    killKnockback = 3.2f;
+                    stunDuration = 0.08f;
+                }
+                else if (objectName.IndexOf("Hunter", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    knockback = 2.35f;
+                    killKnockback = 3.8f;
+                    stunDuration = 0.09f;
+                }
+                else if (objectName.IndexOf("Tank", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    knockback = 1.7f;
+                    killKnockback = 2.8f;
+                    stunDuration = 0.06f;
+                }
+                else if (objectName.IndexOf("Boss", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    knockback = 1.3f;
+                    killKnockback = 2.3f;
+                    stunDuration = 0.05f;
+                }
+            }
+
+            ConfigureSerialized(impact, so =>
+            {
+                so.FindProperty("knockbackStrength").floatValue = knockback;
+                so.FindProperty("killKnockbackStrength").floatValue = killKnockback;
+                so.FindProperty("stunDuration").floatValue = stunDuration;
+                so.FindProperty("velocityDamping").floatValue = 0.36f;
+                so.FindProperty("flattenToMovementPlane").boolValue = true;
+            });
         }
 
         private static void AddSceneToBuildSettings(string scenePath)

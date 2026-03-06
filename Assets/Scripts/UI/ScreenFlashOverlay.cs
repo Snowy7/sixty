@@ -1,16 +1,21 @@
 using System.Collections;
+using Ia.Core.Update;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Sixty.UI
 {
     [RequireComponent(typeof(Image))]
-    public class ScreenFlashOverlay : MonoBehaviour
+    public class ScreenFlashOverlay : IaBehaviour
     {
         [SerializeField] private Image overlayImage;
         private Coroutine activeFlashRoutine;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.UI;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.None;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             if (overlayImage == null)
             {

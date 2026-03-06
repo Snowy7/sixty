@@ -1,25 +1,32 @@
 using UnityEngine;
+using Ia.Core.Update;
 
 namespace Sixty.World
 {
-    public class SpinBob : MonoBehaviour
+    public class SpinBob : IaBehaviour
     {
         [SerializeField] private float spinSpeed = 90f;
         [SerializeField] private float bobHeight = 0.25f;
         [SerializeField] private float bobFrequency = 2f;
 
         private Vector3 basePosition;
+        private float bobTimer;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.World;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Start()
+        protected override void OnIaStart()
         {
             basePosition = transform.position;
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
-            transform.Rotate(0f, spinSpeed * Time.deltaTime, 0f, Space.World);
+            transform.Rotate(0f, spinSpeed * deltaTime, 0f, Space.World);
 
-            float bobOffset = Mathf.Sin(Time.time * bobFrequency) * bobHeight;
+            bobTimer += deltaTime;
+            float bobOffset = Mathf.Sin(bobTimer * bobFrequency) * bobHeight;
             transform.position = new Vector3(basePosition.x, basePosition.y + bobOffset, basePosition.z);
         }
     }

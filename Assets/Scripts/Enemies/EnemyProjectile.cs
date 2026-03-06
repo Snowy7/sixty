@@ -1,10 +1,12 @@
 using Sixty.Player;
 using UnityEngine;
+using Ia.Core.Update;
+using System;
 
 namespace Sixty.Enemies
 {
     [RequireComponent(typeof(Collider))]
-    public class EnemyProjectile : MonoBehaviour
+    public class EnemyProjectile : IaBehaviour
     {
         [SerializeField] private bool destroyWhenTouchingEnvironment = true;
 
@@ -13,6 +15,11 @@ namespace Sixty.Enemies
         private float timeDamage = 2f;
         private float lifeRemaining = 2f;
         private GameObject owner;
+        private Action<EnemyProjectile> releaseToPool;
+
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.AI;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
         public void Initialize(Vector3 direction, float projectileSpeed, float damageAsTimeLoss, float lifetime, GameObject sourceOwner = null)
         {
@@ -23,20 +30,25 @@ namespace Sixty.Enemies
             owner = sourceOwner;
         }
 
+        public void SetPoolReleaseCallback(Action<EnemyProjectile> releaseCallback)
+        {
+            releaseToPool = releaseCallback;
+        }
+
         private void Reset()
         {
             Collider projectileCollider = GetComponent<Collider>();
             projectileCollider.isTrigger = true;
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
-            transform.position += moveDirection * (speed * Time.deltaTime);
+            transform.position += moveDirection * (speed * deltaTime);
 
-            lifeRemaining -= Time.deltaTime;
+            lifeRemaining -= deltaTime;
             if (lifeRemaining <= 0f)
             {
-                Destroy(gameObject);
+                Despawn();
             }
         }
 
@@ -47,18 +59,43 @@ namespace Sixty.Enemies
                 return;
             }
 
-            PlayerController player = other.GetComponentInParent<PlayerController>();
+            Transform otherRoot = other.transform.root;
+            PlayerController player = otherRoot != null ? otherRoot.GetComponent<PlayerController>() : null;
             if (player != null)
             {
                 player.TryTakeTimeDamage(timeDamage);
-                Destroy(gameObject);
+                Despawn();
                 return;
             }
 
             if (destroyWhenTouchingEnvironment && !other.isTrigger)
             {
-                Destroy(gameObject);
+                Despawn();
             }
+        }
+
+        private void Despawn()
+        {
+            if (releaseToPool != null)
+            {
+                object callbackTarget = releaseToPool.Target;
+                if (!(callbackTarget is UnityEngine.Object unityTarget) || unityTarget != null)
+                {
+                    try
+                    {
+                        releaseToPool(this);
+                        return;
+                    }
+                    catch (MissingReferenceException)
+                    {
+                        // Shooter/pool owner was destroyed; fallback to regular destroy.
+                    }
+                }
+
+                releaseToPool = null;
+            }
+
+            Destroy(gameObject);
         }
     }
 }

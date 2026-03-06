@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using Ia.Core.Events;
+using Ia.Core.Update;
 using Sixty.CameraSystem;
 using Sixty.Core;
 using Sixty.UI;
@@ -7,7 +9,7 @@ using UnityEngine;
 
 namespace Sixty.Gameplay
 {
-    public class GameFeelController : MonoBehaviour
+    public class GameFeelController : IaBehaviour
     {
         [Header("References")]
         [SerializeField] private TopDownCameraFollow cameraFollow;
@@ -43,6 +45,10 @@ namespace Sixty.Gameplay
         [Header("Burst Pool")]
         [SerializeField] private int prewarmedBursts = 56;
         [SerializeField] private int maxBurstPoolSize = 96;
+        
+        [Header("Runtime Performance")]
+        [SerializeField] private bool optimizeArenaSurfaces = true;
+        [SerializeField] private string[] optimizedSurfaceObjectNames = { "BaseFloor", "ArenaPlate" };
 
         [Header("Audio")]
         [SerializeField] private AudioClip shootSfx;
@@ -86,8 +92,6 @@ namespace Sixty.Gameplay
         private readonly List<ActiveBurst> activeBursts = new List<ActiveBurst>(96);
         private Coroutine hitStopRoutine;
         private float defaultFixedDelta;
-        private RunDirector runDirector;
-        private TimeManager timeManager;
         private float lowTimePulseCooldown;
         private float nextShootShakeAt;
         private int burstRoundRobinCursor;
@@ -100,8 +104,15 @@ namespace Sixty.Gameplay
         private AudioClip fallbackPickupSfx;
         private AudioClip fallbackRoomClearSfx;
         private AudioClip fallbackRunWinSfx;
+        private readonly ParticleSystem.Burst[] reusableBurst = new ParticleSystem.Burst[1];
+        private static readonly Gradient SharedAlphaFadeGradient = CreateSharedAlphaFadeGradient();
+        private static readonly Dictionary<int, Material> RuntimeSurfaceMaterialCache = new Dictionary<int, Material>(8);
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.FX;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             if (Instance != null && Instance != this)
             {
@@ -114,19 +125,26 @@ namespace Sixty.Gameplay
             EnsureAudioSource();
             GenerateFallbackClips();
             PrewarmBurstPool();
+            OptimizeArenaSurfaceRendering();
         }
 
-        private void OnEnable()
+        protected override void OnIaEnable()
         {
             BindRuntimeReferences();
+            IaEventBus.Subscribe<RoomClearedEvent>(HandleRoomClearedEvent);
+            IaEventBus.Subscribe<RunWonEvent>(HandleRunWonEvent);
+            IaEventBus.Subscribe<TimeChangedEvent>(HandleTimeChangedEvent);
         }
 
-        private void OnDisable()
+        protected override void OnIaDisable()
         {
+            IaEventBus.Unsubscribe<RoomClearedEvent>(HandleRoomClearedEvent);
+            IaEventBus.Unsubscribe<RunWonEvent>(HandleRunWonEvent);
+            IaEventBus.Unsubscribe<TimeChangedEvent>(HandleTimeChangedEvent);
             UnbindRuntimeReferences();
         }
 
-        private void OnDestroy()
+        protected override void OnIaDestroy()
         {
             if (Instance == this)
             {
@@ -134,9 +152,9 @@ namespace Sixty.Gameplay
             }
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
-            if (cameraFollow == null || screenFlashOverlay == null || runDirector == null || timeManager == null || postProcessFeedback == null)
+            if (cameraFollow == null || screenFlashOverlay == null || postProcessFeedback == null)
             {
                 BindRuntimeReferences();
             }
@@ -224,6 +242,21 @@ namespace Sixty.Gameplay
             postProcessFeedback?.OnPickup();
         }
 
+        private void HandleRoomClearedEvent(RoomClearedEvent evt)
+        {
+            HandleRoomCleared(evt.Room, evt.TotalRooms);
+        }
+
+        private void HandleRunWonEvent(RunWonEvent evt)
+        {
+            HandleRunWon();
+        }
+
+        private void HandleTimeChangedEvent(TimeChangedEvent evt)
+        {
+            HandleTimeChanged(evt.Remaining, evt.Delta);
+        }
+
         private void HandleRoomCleared(int room, int total)
         {
             AddShake(roomClearShake);
@@ -279,42 +312,11 @@ namespace Sixty.Gameplay
                 postProcessFeedback = FindFirstObjectByType<PostProcessFeedback>();
             }
 
-            if (runDirector == null)
-            {
-                runDirector = FindFirstObjectByType<RunDirector>();
-                if (runDirector != null)
-                {
-                    runDirector.OnRoomCleared += HandleRoomCleared;
-                    runDirector.OnRunWon += HandleRunWon;
-                }
-            }
-
-            if (timeManager == null)
-            {
-                timeManager = TimeManager.Instance;
-                if (timeManager != null)
-                {
-                    timeManager.OnTimeChanged += HandleTimeChanged;
-                }
-            }
-
             EnsureAudioSource();
         }
 
         private void UnbindRuntimeReferences()
         {
-            if (runDirector != null)
-            {
-                runDirector.OnRoomCleared -= HandleRoomCleared;
-                runDirector.OnRunWon -= HandleRunWon;
-                runDirector = null;
-            }
-
-            if (timeManager != null)
-            {
-                timeManager.OnTimeChanged -= HandleTimeChanged;
-                timeManager = null;
-            }
         }
 
         private void TryPlayHitReaction(Transform target, bool heavy)
@@ -333,6 +335,7 @@ namespace Sixty.Gameplay
 
             if (reaction != null)
             {
+                reaction.SetFlashColor(heavy ? enemyKillColor : enemyHitColor);
                 reaction.PlayHitReaction(heavy);
             }
         }
@@ -427,48 +430,16 @@ namespace Sixty.Gameplay
 
             particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-            ParticleSystemRenderer renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
-            renderer.material = GetFxMaterial();
-            renderer.renderMode = ParticleSystemRenderMode.Billboard;
-
             var main = particleSystem.main;
-            main.playOnAwake = false;
             main.duration = lifetime;
-            main.loop = false;
             main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime * 0.55f, lifetime);
             main.startSpeed = new ParticleSystem.MinMaxCurve(speedMin, speedMax);
             main.startSize = startSize;
             main.startColor = color;
-            main.gravityModifier = 0f;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = Mathf.Max(count * 2, 64);
 
             var emission = particleSystem.emission;
-            emission.enabled = true;
-            emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)Mathf.Clamp(count, 1, short.MaxValue)) });
-
-            var shape = particleSystem.shape;
-            shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 22f;
-            shape.radius = 0.05f;
-
-            var colorOverLifetime = particleSystem.colorOverLifetime;
-            colorOverLifetime.enabled = true;
-            Gradient gradient = new Gradient();
-            gradient.SetKeys(
-                new[]
-                {
-                    new GradientColorKey(color, 0f),
-                    new GradientColorKey(color, 1f)
-                },
-                new[]
-                {
-                    new GradientAlphaKey(color.a, 0f),
-                    new GradientAlphaKey(0f, 1f)
-                });
-            colorOverLifetime.color = gradient;
+            reusableBurst[0] = new ParticleSystem.Burst(0f, (short)Mathf.Clamp(count, 1, short.MaxValue));
+            emission.SetBursts(reusableBurst);
 
             particleSystem.gameObject.SetActive(true);
             particleSystem.Play(true);
@@ -559,9 +530,173 @@ namespace Sixty.Gameplay
             fx.SetActive(false);
 
             ParticleSystem particleSystem = fx.AddComponent<ParticleSystem>();
+            ParticleSystemRenderer renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+            renderer.material = GetFxMaterial();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+
+            var main = particleSystem.main;
+            main.playOnAwake = false;
+            main.loop = false;
+            main.gravityModifier = 0f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 128;
+
+            var emission = particleSystem.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 0f;
+
+            var shape = particleSystem.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 22f;
+            shape.radius = 0.05f;
+
+            var colorOverLifetime = particleSystem.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(SharedAlphaFadeGradient);
+
             particleSystem.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             burstPool.Add(particleSystem);
             return particleSystem;
+        }
+
+        private static Gradient CreateSharedAlphaFadeGradient()
+        {
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(Color.white, 0f),
+                    new GradientColorKey(Color.white, 1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(0f, 1f)
+                });
+
+            return gradient;
+        }
+
+        private void OptimizeArenaSurfaceRendering()
+        {
+            if (!optimizeArenaSurfaces || optimizedSurfaceObjectNames == null || optimizedSurfaceObjectNames.Length == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < optimizedSurfaceObjectNames.Length; i++)
+            {
+                string objectName = optimizedSurfaceObjectNames[i];
+                if (string.IsNullOrWhiteSpace(objectName))
+                {
+                    continue;
+                }
+
+                GameObject surfaceObject = GameObject.Find(objectName);
+                if (surfaceObject == null)
+                {
+                    continue;
+                }
+
+                Renderer renderer = surfaceObject.GetComponent<Renderer>();
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+                renderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+                renderer.allowOcclusionWhenDynamic = false;
+
+                Material optimizedMaterial = GetOrCreateOptimizedSurfaceMaterial(renderer.sharedMaterial);
+                if (optimizedMaterial != null)
+                {
+                    renderer.sharedMaterial = optimizedMaterial;
+                }
+            }
+        }
+
+        private static Material GetOrCreateOptimizedSurfaceMaterial(Material sourceMaterial)
+        {
+            int key = sourceMaterial != null ? sourceMaterial.GetInstanceID() : 0;
+            if (RuntimeSurfaceMaterialCache.TryGetValue(key, out Material cached) && cached != null)
+            {
+                return cached;
+            }
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Simple Lit");
+            if (shader == null)
+            {
+                shader = Shader.Find("Universal Render Pipeline/Unlit");
+            }
+
+            if (shader == null)
+            {
+                shader = Shader.Find("Standard");
+            }
+
+            if (shader == null)
+            {
+                return sourceMaterial;
+            }
+
+            Material optimized = new Material(shader);
+            optimized.name = sourceMaterial != null ? $"{sourceMaterial.name}_RuntimePerf" : "RuntimePerfSurface";
+
+            Color color = Color.gray;
+            Texture texture = null;
+            if (sourceMaterial != null)
+            {
+                if (sourceMaterial.HasProperty("_BaseColor"))
+                {
+                    color = sourceMaterial.GetColor("_BaseColor");
+                }
+                else if (sourceMaterial.HasProperty("_Color"))
+                {
+                    color = sourceMaterial.GetColor("_Color");
+                }
+
+                if (sourceMaterial.HasProperty("_BaseMap"))
+                {
+                    texture = sourceMaterial.GetTexture("_BaseMap");
+                }
+                else if (sourceMaterial.HasProperty("_MainTex"))
+                {
+                    texture = sourceMaterial.GetTexture("_MainTex");
+                }
+            }
+
+            if (optimized.HasProperty("_BaseColor"))
+            {
+                optimized.SetColor("_BaseColor", color);
+            }
+
+            if (optimized.HasProperty("_Color"))
+            {
+                optimized.SetColor("_Color", color);
+            }
+
+            if (optimized.HasProperty("_BaseMap"))
+            {
+                optimized.SetTexture("_BaseMap", texture);
+            }
+
+            if (optimized.HasProperty("_MainTex"))
+            {
+                optimized.SetTexture("_MainTex", texture);
+            }
+
+            if (optimized.HasProperty("_Smoothness"))
+            {
+                optimized.SetFloat("_Smoothness", 0f);
+            }
+
+            RuntimeSurfaceMaterialCache[key] = optimized;
+            return optimized;
         }
 
         private void EnsureAudioSource()
@@ -769,7 +904,7 @@ namespace Sixty.Gameplay
         }
     }
 
-    public class PostProcessFeedback : MonoBehaviour
+    public class PostProcessFeedback : IaBehaviour
     {
         [Header("References")]
         [SerializeField] private UnityEngine.Rendering.Volume volume;
@@ -802,13 +937,17 @@ namespace Sixty.Gameplay
         private float lensPulse;
         private float flashStrength;
         private Color flashColor = Color.white;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.FX;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             ResolveOverrides();
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
             if (volume == null || vignette == null || chromatic == null || lens == null || colorAdjustments == null)
             {
@@ -824,30 +963,30 @@ namespace Sixty.Gameplay
             if (vignette != null)
             {
                 float targetVignette = baseVignette + (lowTimeFactor * lowTimeVignetteBoost) + vignettePulse;
-                vignette.intensity.value = Mathf.Lerp(vignette.intensity.value, Mathf.Clamp01(targetVignette), lowTimeSmoothing * Time.deltaTime);
+                vignette.intensity.value = Mathf.Lerp(vignette.intensity.value, Mathf.Clamp01(targetVignette), lowTimeSmoothing * deltaTime);
             }
 
             if (colorAdjustments != null)
             {
                 float targetSaturation = baseSaturation - (lowTimeFactor * lowTimeSaturationPenalty);
-                colorAdjustments.saturation.value = Mathf.Lerp(colorAdjustments.saturation.value, targetSaturation, lowTimeSmoothing * Time.deltaTime);
+                colorAdjustments.saturation.value = Mathf.Lerp(colorAdjustments.saturation.value, targetSaturation, lowTimeSmoothing * deltaTime);
                 colorAdjustments.colorFilter.value = Color.Lerp(baseColorFilter, flashColor, Mathf.Clamp01(flashStrength));
             }
 
             if (chromatic != null)
             {
-                chromatic.intensity.value = Mathf.Lerp(chromatic.intensity.value, Mathf.Clamp01(baseChromatic + chromaticPulse), lowTimeSmoothing * Time.deltaTime);
+                chromatic.intensity.value = Mathf.Lerp(chromatic.intensity.value, Mathf.Clamp01(baseChromatic + chromaticPulse), lowTimeSmoothing * deltaTime);
             }
 
             if (lens != null)
             {
-                lens.intensity.value = Mathf.Lerp(lens.intensity.value, Mathf.Clamp(baseLens + lensPulse, -1f, 1f), lowTimeSmoothing * Time.deltaTime);
+                lens.intensity.value = Mathf.Lerp(lens.intensity.value, Mathf.Clamp(baseLens + lensPulse, -1f, 1f), lowTimeSmoothing * deltaTime);
             }
 
-            chromaticPulse = Mathf.MoveTowards(chromaticPulse, 0f, chromaticDecayPerSecond * Time.deltaTime);
-            vignettePulse = Mathf.MoveTowards(vignettePulse, 0f, vignetteDecayPerSecond * Time.deltaTime);
-            lensPulse = Mathf.MoveTowards(lensPulse, 0f, lensDecayPerSecond * Time.deltaTime);
-            flashStrength = Mathf.MoveTowards(flashStrength, 0f, flashDecayPerSecond * Time.deltaTime);
+            chromaticPulse = Mathf.MoveTowards(chromaticPulse, 0f, chromaticDecayPerSecond * deltaTime);
+            vignettePulse = Mathf.MoveTowards(vignettePulse, 0f, vignetteDecayPerSecond * deltaTime);
+            lensPulse = Mathf.MoveTowards(lensPulse, 0f, lensDecayPerSecond * deltaTime);
+            flashStrength = Mathf.MoveTowards(flashStrength, 0f, flashDecayPerSecond * deltaTime);
         }
 
         public void OnShot()

@@ -1,13 +1,14 @@
 using Sixty.Combat;
 using Sixty.Core;
 using Sixty.Gameplay;
+using Ia.Core.Update;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Sixty.Player
 {
     [RequireComponent(typeof(Rigidbody))]
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : IaBehaviour
     {
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 8f;
@@ -67,8 +68,12 @@ namespace Sixty.Player
         private readonly Collider[] aimAssistBuffer = new Collider[96];
 
         private bool IsDashing => dashTimer > 0f;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.Player;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update | IaUpdatePhase.FixedUpdate;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             body = GetComponent<Rigidbody>();
             body.useGravity = true;
@@ -76,7 +81,7 @@ namespace Sixty.Player
             lockedY = transform.position.y;
         }
 
-        private void OnEnable()
+        protected override void OnIaEnable()
         {
             BindActions();
             playerMap?.Enable();
@@ -87,7 +92,7 @@ namespace Sixty.Player
             }
         }
 
-        private void OnDisable()
+        protected override void OnIaDisable()
         {
             if (dashAction != null)
             {
@@ -97,26 +102,26 @@ namespace Sixty.Player
             playerMap?.Disable();
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
             moveInput = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
 
             if (dashCooldownTimer > 0f)
             {
-                dashCooldownTimer -= Time.deltaTime;
+                dashCooldownTimer -= deltaTime;
             }
 
             if (dashTimer > 0f)
             {
-                dashTimer -= Time.deltaTime;
+                dashTimer -= deltaTime;
             }
 
             if (invulnerabilityTimer > 0f)
             {
-                invulnerabilityTimer -= Time.deltaTime;
+                invulnerabilityTimer -= deltaTime;
             }
 
-            UpdateAimDirection();
+            UpdateAimDirection(deltaTime);
 
             bool isAttacking = attackAction != null && attackAction.IsPressed();
             if (!isAttacking && Gamepad.current != null)
@@ -126,12 +131,17 @@ namespace Sixty.Player
 
             if (isAttacking && weaponController != null)
             {
+                if (!weaponController.CanFireNow)
+                {
+                    return;
+                }
+
                 Vector3 fireDirection = ResolveFireDirection(AimDirection, controllerAimActive);
                 weaponController.TryFire(fireDirection);
             }
         }
 
-        private void FixedUpdate()
+        public override void OnIaFixedUpdate(float fixedDeltaTime)
         {
             Vector3 desiredDirection;
             float desiredSpeed;
@@ -152,7 +162,7 @@ namespace Sixty.Player
                 desiredSpeed = moveSpeed;
             }
 
-            Vector3 nextPosition = body.position + (desiredDirection * desiredSpeed * Time.fixedDeltaTime);
+            Vector3 nextPosition = body.position + (desiredDirection * desiredSpeed * fixedDeltaTime);
             if (lockVerticalPosition)
             {
                 nextPosition.y = lockedY;
@@ -161,7 +171,7 @@ namespace Sixty.Player
             body.MovePosition(nextPosition);
         }
 
-        public bool TryTakeTimeDamage(float seconds = 2f)
+        public bool TryTakeTimeDamage(float seconds = 2f, bool playDamageFeedback = true)
         {
             if (IsInvulnerable)
             {
@@ -169,7 +179,11 @@ namespace Sixty.Player
             }
 
             TimeManager.Instance?.TakeDamage(seconds);
-            GameFeelController.Instance?.OnPlayerDamaged(transform);
+            if (playDamageFeedback)
+            {
+                GameFeelController.Instance?.OnPlayerDamaged(transform);
+            }
+
             return true;
         }
 
@@ -211,7 +225,7 @@ namespace Sixty.Player
             GameFeelController.Instance?.OnPlayerDash(transform.position, dashDirection);
         }
 
-        private void UpdateAimDirection()
+        private void UpdateAimDirection(float deltaTime)
         {
             if (aimCamera == null)
             {
@@ -272,7 +286,7 @@ namespace Sixty.Player
 
             if (resolvedAim.sqrMagnitude > 0.0001f)
             {
-                AimDirection = Vector3.Slerp(AimDirection, resolvedAim.normalized, aimSmoothing * Time.deltaTime).normalized;
+                AimDirection = Vector3.Slerp(AimDirection, resolvedAim.normalized, aimSmoothing * deltaTime).normalized;
             }
 
             Transform targetPivot = aimPivot != null ? aimPivot : transform;

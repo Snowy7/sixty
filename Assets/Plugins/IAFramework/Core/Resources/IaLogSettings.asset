@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b748a48cd7d4899bc33d7a37b474c1e, type: 3}
+  m_Name: IaLogSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Ia.Core.Debugging.IaLogSettings
+  enableLogging: 1
+  minimumLogLevel: 3
+  coreEnabled: 1
+  updateEnabled: 1
+  gameplayEnabled: 1
+  aiEnabled: 1
+  combatEnabled: 1
+  uiEnabled: 1
+  worldEnabled: 1
+  audioEnabled: 1
+  networkEnabled: 1
+  custom1Enabled: 1
+  custom2Enabled: 1

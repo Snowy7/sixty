@@ -1,8 +1,9 @@
 using UnityEngine;
+using Ia.Core.Update;
 
 namespace Sixty.CameraSystem
 {
-    public class TopDownCameraFollow : MonoBehaviour
+    public class TopDownCameraFollow : IaBehaviour
     {
         [SerializeField] private Transform target;
         [SerializeField] private Vector3 offset = new Vector3(0f, 22f, -12f);
@@ -13,6 +14,9 @@ namespace Sixty.CameraSystem
         [SerializeField] private float maxShakeDistance = 1.15f;
         [SerializeField] private float maxShakeRollDegrees = 4f;
         [SerializeField] private float maxShakePitchYawDegrees = 2.2f;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.UI;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.LateUpdate;
 
         public void SetTarget(Transform newTarget)
         {
@@ -26,7 +30,7 @@ namespace Sixty.CameraSystem
 
         private float shakeTrauma;
 
-        private void LateUpdate()
+        public override void OnIaLateUpdate(float deltaTime)
         {
             if (target == null)
             {
@@ -34,7 +38,7 @@ namespace Sixty.CameraSystem
             }
 
             Vector3 desiredPosition = target.position + offset;
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, followLerpSpeed * Time.deltaTime);
+            transform.position = Vector3.Lerp(transform.position, desiredPosition, followLerpSpeed * deltaTime);
 
             if (lookAtTarget)
             {
@@ -55,7 +59,7 @@ namespace Sixty.CameraSystem
                 float yaw = Random.Range(-1f, 1f) * maxShakePitchYawDegrees * shakeStrength;
                 transform.rotation = Quaternion.Euler(transform.eulerAngles.x + pitch, transform.eulerAngles.y + yaw, roll);
 
-                shakeTrauma = Mathf.Max(0f, shakeTrauma - (shakeDecayPerSecond * Time.deltaTime));
+                shakeTrauma = Mathf.Max(0f, shakeTrauma - (shakeDecayPerSecond * deltaTime));
             }
         }
     }

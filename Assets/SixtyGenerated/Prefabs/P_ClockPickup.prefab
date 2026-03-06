@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &528035717983422101
+--- !u!1 &3961558131820931618
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,12 +8,12 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4551192576358830879}
-  - component: {fileID: 7648737874873847597}
-  - component: {fileID: 8979138127061791146}
-  - component: {fileID: 5835087297209568814}
-  - component: {fileID: 3595215518986637440}
-  - component: {fileID: 6914707968041250028}
+  - component: {fileID: 3310562856724819879}
+  - component: {fileID: 3274273007678508101}
+  - component: {fileID: 5070913905169996911}
+  - component: {fileID: 6703915969318143502}
+  - component: {fileID: 1813180520221707581}
+  - component: {fileID: 46653328851365464}
   m_Layer: 0
   m_Name: P_ClockPickup
   m_TagString: Untagged
@@ -21,13 +21,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4551192576358830879
+--- !u!4 &3310562856724819879
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -36,21 +36,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &7648737874873847597
+--- !u!33 &3274273007678508101
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!136 &8979138127061791146
+--- !u!136 &5070913905169996911
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -67,13 +67,13 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &5835087297209568814
+--- !u!23 &6703915969318143502
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -92,7 +92,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f1e38594f14520c48bc546f3a41f4f56, type: 2}
+  - {fileID: 2100000, guid: 73afc5d5cf6fbdb4b97b484f00019a2b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -116,13 +116,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &3595215518986637440
+--- !u!114 &1813180520221707581
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 403d84cd7b3356a4a800e2d9ede40230, type: 3}
@@ -131,13 +131,13 @@ MonoBehaviour:
   spinSpeed: 90
   bobHeight: 0.25
   bobFrequency: 2
---- !u!114 &6914707968041250028
+--- !u!114 &46653328851365464
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 528035717983422101}
+  m_GameObject: {fileID: 3961558131820931618}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d8e1132fa5499b247ab180cbec1424f1, type: 3}

@@ -1,9 +1,10 @@
 using System.Collections;
+using Ia.Core.Update;
 using UnityEngine;
 
 namespace Sixty.Gameplay
 {
-    public class HitFlashSquash : MonoBehaviour
+    public class HitFlashSquash : IaBehaviour
     {
         [Header("Targets")]
         [SerializeField] private Renderer[] targetRenderers;
@@ -14,24 +15,41 @@ namespace Sixty.Gameplay
         [SerializeField] private float flashOutDuration = 0.12f;
         [SerializeField] private float hitSqueezeStrength = 0.22f;
         [SerializeField] private float hitRecoverDuration = 0.16f;
+        [SerializeField] private float heavyHitSqueezeMultiplier = 2.15f;
+        [SerializeField] private float squeezeGlobalMultiplier = 1.45f;
+        [SerializeField] private float hitColorIntensity = 1.95f;
+        [SerializeField] private float heavyHitColorIntensity = 2.8f;
+        [SerializeField] private float hitEmissionIntensity = 2.8f;
+        [SerializeField] private float heavyHitEmissionIntensity = 4.8f;
 
         [Header("Shot Recoil")]
         [SerializeField] private float recoilSqueezeStrength = 0.11f;
         [SerializeField] private float recoilDuration = 0.11f;
+        [SerializeField] private float recoilColorIntensity = 1.3f;
+        [SerializeField] private float recoilEmissionIntensity = 1.7f;
 
         private struct MaterialSnapshot
         {
             public Material material;
             public bool hasBaseColor;
             public bool hasColor;
+            public bool hasTintColor;
+            public bool hasEmissionColor;
             public Color baseColor;
+            public Color baseEmissionColor;
         }
 
         private MaterialSnapshot[] snapshots;
         private Vector3 baseScale;
         private Coroutine activeRoutine;
+        private float activeColorIntensity = 1f;
+        private float activeEmissionIntensity = 1f;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.FX;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.None;
+        protected override bool UseOrderedLifecycle => false;
 
-        private void Awake()
+        protected override void OnIaAwake()
         {
             baseScale = transform.localScale;
 
@@ -52,26 +70,50 @@ namespace Sixty.Gameplay
 
                 bool hasBaseColor = mat.HasProperty("_BaseColor");
                 bool hasColor = mat.HasProperty("_Color");
+                bool hasTintColor = mat.HasProperty("_TintColor");
+                bool hasEmissionColor = mat.HasProperty("_EmissionColor");
                 Color baseColor = hasBaseColor ? mat.GetColor("_BaseColor") : (hasColor ? mat.GetColor("_Color") : Color.white);
+                Color baseEmissionColor = hasEmissionColor ? mat.GetColor("_EmissionColor") : Color.black;
+                if (hasEmissionColor)
+                {
+                    mat.EnableKeyword("_EMISSION");
+                }
 
                 snapshots[i] = new MaterialSnapshot
                 {
                     material = mat,
                     hasBaseColor = hasBaseColor,
                     hasColor = hasColor,
-                    baseColor = baseColor
+                    hasTintColor = hasTintColor,
+                    hasEmissionColor = hasEmissionColor,
+                    baseColor = baseColor,
+                    baseEmissionColor = baseEmissionColor
                 };
             }
         }
 
         public void PlayHitReaction(bool heavy)
         {
-            float strength = heavy ? hitSqueezeStrength * 1.75f : hitSqueezeStrength;
+            float strength = hitSqueezeStrength * squeezeGlobalMultiplier;
+            if (heavy)
+            {
+                strength *= heavyHitSqueezeMultiplier;
+            }
+
+            activeColorIntensity = heavy ? heavyHitColorIntensity : hitColorIntensity;
+            activeEmissionIntensity = heavy ? heavyHitEmissionIntensity : hitEmissionIntensity;
             StartReaction(strength, hitRecoverDuration, true);
+        }
+
+        public void SetFlashColor(Color color)
+        {
+            flashColor = color;
         }
 
         public void PlayRecoil()
         {
+            activeColorIntensity = recoilColorIntensity;
+            activeEmissionIntensity = recoilEmissionIntensity;
             StartReaction(recoilSqueezeStrength, recoilDuration, false);
         }
 
@@ -142,7 +184,8 @@ namespace Sixty.Gameplay
                     continue;
                 }
 
-                Color color = Color.Lerp(snapshot.baseColor, flashColor, alpha);
+                Color intensifiedFlash = flashColor * Mathf.Max(1f, activeColorIntensity);
+                Color color = Color.Lerp(snapshot.baseColor, intensifiedFlash, alpha);
                 if (snapshot.hasBaseColor)
                 {
                     snapshot.material.SetColor("_BaseColor", color);
@@ -151,6 +194,18 @@ namespace Sixty.Gameplay
                 if (snapshot.hasColor)
                 {
                     snapshot.material.SetColor("_Color", color);
+                }
+
+                if (snapshot.hasTintColor)
+                {
+                    snapshot.material.SetColor("_TintColor", color);
+                }
+
+                if (snapshot.hasEmissionColor)
+                {
+                    Color emissiveTarget = flashColor * Mathf.Max(0f, activeEmissionIntensity);
+                    Color emissive = Color.Lerp(snapshot.baseEmissionColor, emissiveTarget, alpha);
+                    snapshot.material.SetColor("_EmissionColor", emissive);
                 }
             }
         }

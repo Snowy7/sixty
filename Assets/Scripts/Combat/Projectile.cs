@@ -1,11 +1,13 @@
 using UnityEngine;
 using Sixty.Gameplay;
 using Sixty.Enemies;
+using Ia.Core.Update;
+using System;
 
 namespace Sixty.Combat
 {
     [RequireComponent(typeof(Collider))]
-    public class Projectile : MonoBehaviour
+    public class Projectile : IaBehaviour
     {
         [SerializeField] private bool destroyOnHit = true;
         [SerializeField] private bool destroyWhenTouchingNonDamageable = true;
@@ -15,6 +17,11 @@ namespace Sixty.Combat
         private float damage;
         private float lifeRemaining;
         private GameObject owner;
+        private Action<Projectile> releaseToPool;
+
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.FX;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
+        protected override bool UseOrderedLifecycle => false;
 
         public void Initialize(Vector3 direction, float projectileSpeed, float projectileDamage, float lifetime, GameObject sourceOwner = null)
         {
@@ -25,20 +32,25 @@ namespace Sixty.Combat
             owner = sourceOwner;
         }
 
+        public void SetPoolReleaseCallback(Action<Projectile> releaseCallback)
+        {
+            releaseToPool = releaseCallback;
+        }
+
         private void Reset()
         {
             Collider projectileCollider = GetComponent<Collider>();
             projectileCollider.isTrigger = true;
         }
 
-        private void Update()
+        public override void OnIaUpdate(float deltaTime)
         {
-            transform.position += moveDirection * (speed * Time.deltaTime);
+            transform.position += moveDirection * (speed * deltaTime);
 
-            lifeRemaining -= Time.deltaTime;
+            lifeRemaining -= deltaTime;
             if (lifeRemaining <= 0f)
             {
-                Destroy(gameObject);
+                Despawn();
             }
         }
 
@@ -68,7 +80,7 @@ namespace Sixty.Combat
 
                 if (destroyOnHit)
                 {
-                    Destroy(gameObject);
+                    Despawn();
                 }
 
                 return;
@@ -76,8 +88,32 @@ namespace Sixty.Combat
 
             if (destroyWhenTouchingNonDamageable && !other.isTrigger)
             {
-                Destroy(gameObject);
+                Despawn();
             }
+        }
+
+        private void Despawn()
+        {
+            if (releaseToPool != null)
+            {
+                object callbackTarget = releaseToPool.Target;
+                if (!(callbackTarget is UnityEngine.Object unityTarget) || unityTarget != null)
+                {
+                    try
+                    {
+                        releaseToPool(this);
+                        return;
+                    }
+                    catch (MissingReferenceException)
+                    {
+                        // Pool owner was destroyed; fallback to regular destroy.
+                    }
+                }
+
+                releaseToPool = null;
+            }
+
+            Destroy(gameObject);
         }
     }
 }

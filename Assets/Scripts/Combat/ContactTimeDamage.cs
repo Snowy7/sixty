@@ -1,14 +1,20 @@
 using System.Collections.Generic;
+using Ia.Core.Update;
 using Sixty.Player;
 using UnityEngine;
 
 namespace Sixty.Combat
 {
     [RequireComponent(typeof(Collider))]
-    public class ContactTimeDamage : MonoBehaviour
+    public class ContactTimeDamage : IaBehaviour
     {
         [SerializeField] private float timeDamage = 2f;
         [SerializeField] private float hitCooldown = 0.35f;
+        [SerializeField] private bool triggerDamageFeedback = false;
+        
+        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.AI;
+        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.None;
+        protected override bool UseOrderedLifecycle => false;
 
         private readonly Dictionary<int, float> nextHitAt = new Dictionary<int, float>();
 
@@ -39,7 +45,13 @@ namespace Sixty.Combat
 
         private void TryDamage(Collider other)
         {
-            PlayerController player = other.GetComponentInParent<PlayerController>();
+            Transform otherRoot = other.transform.root;
+            if (otherRoot == null)
+            {
+                return;
+            }
+
+            PlayerController player = otherRoot.GetComponent<PlayerController>();
             if (player == null)
             {
                 return;
@@ -51,7 +63,7 @@ namespace Sixty.Combat
                 return;
             }
 
-            bool dealtDamage = player.TryTakeTimeDamage(timeDamage);
+            bool dealtDamage = player.TryTakeTimeDamage(timeDamage, triggerDamageFeedback);
             if (!dealtDamage)
             {
                 return;
