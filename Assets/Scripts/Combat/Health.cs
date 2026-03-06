@@ -1,5 +1,7 @@
 using System;
+using Ia.Core.Events;
 using Ia.Core.Update;
+using Sixty.Core;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -40,6 +42,7 @@ namespace Sixty.Combat
             {
                 onDeath?.Invoke();
                 OnDied?.Invoke(this);
+                IaEventBus.Publish(new EnemyKilledEvent(transform));
 
                 if (destroyOnDeath)
                 {

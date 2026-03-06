@@ -15,5 +15,11 @@ namespace Sixty.Combat
         public Projectile projectilePrefab;
         public float projectileSpeed = 45f;
         public float projectileLifetime = 2f;
+
+        [Header("Pattern")]
+        [Tooltip("Projectiles fired per trigger pull.")]
+        public int projectileCount = 1;
+        [Tooltip("Total horizontal spread angle in degrees across all projectiles.")]
+        public float spreadAngle = 0f;
     }
 }

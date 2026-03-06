@@ -1,0 +1,126 @@
+// Compute shader that generates a dense cubical void cityscape.
+// Outputs per-instance data (position, scale, emissive flag) into a StructuredBuffer.
+#pragma kernel CSMain
+
+struct VoidCubeInstance
+{
+    float3 position;
+    float3 scale;
+    float  emissive; // 0 or 1
+};
+
+RWStructuredBuffer<VoidCubeInstance> _ResultBuffer;
+RWStructuredBuffer<uint> _CounterBuffer;
+
+float4 _WorldBounds;   // minX, minZ, maxX, maxZ
+float  _CellSize;      // grid cell size
+float  _BaseY;         // base Y position
+int    _GridCountX;
+int    _GridCountZ;
+int    _MaxInstances;
+
+// Room exclusion zones (up to 16 rooms)
+int    _RoomCount;
+float4 _RoomCenters[16]; // xyz = center, w = halfExtent
+
+uint Hash(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x45d9f3bu;
+    x ^= x >> 16;
+    x *= 0x45d9f3bu;
+    x ^= x >> 16;
+    return x;
+}
+
+float HashFloat01(uint h)
+{
+    return float(h & 0xFFFFFF) / float(0xFFFFFF);
+}
+
+bool IsInsideRoom(float3 pos)
+{
+    for (int i = 0; i < _RoomCount; i++)
+    {
+        float3 rc = _RoomCenters[i].xyz;
+        float  he = _RoomCenters[i].w;
+        if (abs(pos.x - rc.x) < he + 4.0 && abs(pos.z - rc.z) < he + 4.0)
+            return true;
+    }
+    return false;
+}
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _GridCountX || (int)id.y >= _GridCountZ)
+        return;
+
+    float worldX = _WorldBounds.x + id.x * _CellSize;
+    float worldZ = _WorldBounds.y + id.y * _CellSize;
+
+    // Hash for deterministic randomness
+    uint seed = Hash(id.x * 73856093u ^ id.y * 19349663u);
+    float r0 = HashFloat01(seed);
+    float r1 = HashFloat01(Hash(seed + 1u));
+    float r2 = HashFloat01(Hash(seed + 2u));
+    float r3 = HashFloat01(Hash(seed + 3u));
+    float r4 = HashFloat01(Hash(seed + 4u));
+
+    // Skip some cells for variation (30% empty)
+    if (r0 < 0.30)
+        return;
+
+    float3 pos = float3(worldX + r1 * _CellSize * 0.3, 0, worldZ + r2 * _CellSize * 0.3);
+    if (IsInsideRoom(pos))
+        return;
+
+    // Height variation: most are short, some are tall
+    float heightBase = 0.3 + r3 * 2.5;
+    if (r4 > 0.85)
+        heightBase = 3.0 + r3 * 8.0;  // occasional tall monolith
+    else if (r4 > 0.6)
+        heightBase = 1.5 + r3 * 4.0;  // medium
+
+    float width = _CellSize * (0.35 + r1 * 0.55);
+    float depth = _CellSize * (0.35 + r2 * 0.55);
+
+    pos.y = _BaseY + heightBase * 0.5;
+
+    // Determine if this is a glow cube (2% chance, only smaller cubes)
+    float isGlow = (r4 < 0.02 && heightBase < 2.0) ? 1.0 : 0.0;
+
+    // Append to buffer
+    uint index;
+    InterlockedAdd(_CounterBuffer[0], 1, index);
+    if ((int)index >= _MaxInstances)
+        return;
+
+    VoidCubeInstance inst;
+    inst.position = pos;
+    inst.scale = float3(width, heightBase, depth);
+    inst.emissive = isGlow;
+    _ResultBuffer[index] = inst;
+
+    // Some cells have a smaller secondary block next to them
+    if (r0 > 0.65)
+    {
+        float h2 = heightBase * (0.3 + r2 * 0.5);
+        float w2 = width * 0.5;
+        float3 pos2 = pos + float3(width * 0.7, (h2 - heightBase) * 0.5, depth * 0.3 * (r1 > 0.5 ? 1 : -1));
+
+        if (!IsInsideRoom(pos2))
+        {
+            uint index2;
+            InterlockedAdd(_CounterBuffer[0], 1, index2);
+            if ((int)index2 < _MaxInstances)
+            {
+                VoidCubeInstance inst2;
+                inst2.position = pos2;
+                inst2.scale = float3(w2, h2, w2);
+                inst2.emissive = 0;
+                _ResultBuffer[index2] = inst2;
+            }
+        }
+    }
+}

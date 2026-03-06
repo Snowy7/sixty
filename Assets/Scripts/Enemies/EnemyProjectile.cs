@@ -1,4 +1,5 @@
 using Sixty.Player;
+using Sixty.Combat;
 using UnityEngine;
 using Ia.Core.Update;
 using System;
@@ -43,6 +44,22 @@ namespace Sixty.Enemies
 
         public override void OnIaUpdate(float deltaTime)
         {
+            if (owner == null)
+            {
+                Despawn();
+                return;
+            }
+
+            if (owner != null)
+            {
+                Health ownerHealth = owner.GetComponent<Health>();
+                if (ownerHealth != null && ownerHealth.IsDead)
+                {
+                    Despawn();
+                    return;
+                }
+            }
+
             transform.position += moveDirection * (speed * deltaTime);
 
             lifeRemaining -= deltaTime;

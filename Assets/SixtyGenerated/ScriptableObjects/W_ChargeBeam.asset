@@ -15,6 +15,8 @@ MonoBehaviour:
   weaponName: Charge Beam
   fireRate: 1
   damage: 80
-  projectilePrefab: {fileID: 7870201749674449126, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
+  projectilePrefab: {fileID: 8688768032114643768, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
   projectileSpeed: 60
   projectileLifetime: 1.25
+  projectileCount: 1
+  spreadAngle: 0

@@ -1,0 +1,71 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <Style src="GameHud.uss" />
+    <ui:VisualElement class="hud-root" picking-mode="Ignore">
+
+        <!-- Top Bar -->
+        <ui:VisualElement class="top-bar" picking-mode="Ignore">
+
+            <!-- Top Left: Room + Enemies -->
+            <ui:VisualElement class="top-left" picking-mode="Ignore">
+                <ui:Label name="room-label" class="room-label" text="ROOM" />
+                <ui:Label name="room-value" class="room-value" text="1 / 10" />
+                <ui:Label name="enemies-label" class="enemies-label" text="ENEMIES" />
+                <ui:Label name="enemies-value" class="enemies-value" text="0" />
+            </ui:VisualElement>
+
+            <!-- Top Center: Timer -->
+            <ui:VisualElement class="top-center" picking-mode="Ignore">
+                <ui:VisualElement class="timer-container" picking-mode="Ignore">
+                    <ui:Label name="timer-value" class="timer-value" text="60.0" />
+                    <ui:Label class="timer-label" text="SEC" />
+                </ui:VisualElement>
+                <ui:VisualElement name="status-container" class="status-container" picking-mode="Ignore">
+                    <ui:Label name="status-text" class="status-text status-combat" text="COMBAT" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Top Right: Weapon -->
+            <ui:VisualElement class="top-right" picking-mode="Ignore">
+                <ui:VisualElement class="weapon-panel" picking-mode="Ignore">
+                    <ui:Label name="weapon-name" class="weapon-name" text="Pulse Rifle" />
+                    <ui:Label name="weapon-stats" class="weapon-stats" text="DMG 8 | ROF 12 | SPD 45" />
+                    <ui:Label name="passive-label" class="passive-label" text="PASSIVE: None" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- Bottom Bar -->
+        <ui:VisualElement class="bottom-bar" picking-mode="Ignore">
+
+            <!-- Bottom Left: Meta info -->
+            <ui:VisualElement class="bottom-left" picking-mode="Ignore">
+                <ui:Label name="meta-text" class="meta-text" text="" />
+            </ui:VisualElement>
+
+            <!-- Bottom Center: Rewards -->
+            <ui:VisualElement name="reward-container" class="reward-container" picking-mode="Ignore">
+                <ui:Label class="reward-title" text="CHOOSE REWARD" />
+                <ui:VisualElement class="reward-options" picking-mode="Ignore">
+                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                        <ui:Label name="reward-1-text" class="reward-option-text" text="---" />
+                        <ui:Label class="reward-option-key" text="[1]" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                        <ui:Label name="reward-2-text" class="reward-option-text" text="---" />
+                        <ui:Label class="reward-option-key" text="[2]" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                        <ui:Label name="reward-3-text" class="reward-option-text" text="---" />
+                        <ui:Label class="reward-option-key" text="[3]" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Bottom Right: empty for now -->
+            <ui:VisualElement class="bottom-right" picking-mode="Ignore" />
+
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

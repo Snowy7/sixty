@@ -32,6 +32,14 @@ namespace Sixty.Combat
 
         public WeaponDefinition CurrentWeapon => weapon;
         public string CurrentWeaponName => weapon != null && !string.IsNullOrWhiteSpace(weapon.weaponName) ? weapon.weaponName : "Unknown";
+        public float FireRateMultiplier => fireRateMultiplier;
+        public float DamageMultiplier => damageMultiplier;
+        public float ProjectileSpeedMultiplier => projectileSpeedMultiplier;
+        public float EffectiveFireRate => weapon != null ? SanitizePositive(weapon.fireRate * fireRateMultiplier, 0f) : 0f;
+        public float EffectiveDamage => weapon != null ? SanitizePositive(weapon.damage * damageMultiplier, 0f) : 0f;
+        public float EffectiveDamagePerTrigger => EffectiveDamage * Mathf.Max(1, weapon != null ? weapon.projectileCount : 1);
+        public float EffectiveProjectileSpeed => weapon != null ? SanitizePositive(weapon.projectileSpeed * projectileSpeedMultiplier, 0f) : 0f;
+        public int EffectiveProjectileCount => weapon != null ? Mathf.Max(1, weapon.projectileCount) : 1;
 
         public bool CanFireNow
         {
@@ -90,28 +98,45 @@ namespace Sixty.Combat
                 spawnPosition.y = root.position.y + projectileHeightOffsetFromOwner;
             }
 
-            Projectile projectile = AcquireProjectile();
-            if (projectile == null)
+            Vector3 baseDirection = direction.normalized;
+            int projectileCount = Mathf.Max(1, weapon.projectileCount);
+            float spread = Mathf.Max(0f, weapon.spreadAngle);
+            bool firedAny = false;
+            for (int i = 0; i < projectileCount; i++)
+            {
+                float t = projectileCount <= 1 ? 0.5f : i / (float)(projectileCount - 1);
+                float angle = projectileCount <= 1 ? 0f : Mathf.Lerp(-spread * 0.5f, spread * 0.5f, t);
+                Vector3 shotDirection = Quaternion.AngleAxis(angle, Vector3.up) * baseDirection;
+
+                Projectile projectile = AcquireProjectile();
+                if (projectile == null)
+                {
+                    continue;
+                }
+
+                Transform projectileTransform = projectile.transform;
+                projectileTransform.SetParent(null, true);
+                projectileTransform.SetPositionAndRotation(
+                    spawnPosition,
+                    Quaternion.LookRotation(shotDirection, Vector3.up));
+                if (!projectile.gameObject.activeSelf)
+                {
+                    projectile.gameObject.SetActive(true);
+                }
+
+                projectile.Initialize(
+                    shotDirection,
+                    SanitizePositive(weapon.projectileSpeed * projectileSpeedMultiplier, 0.01f),
+                    SanitizePositive(weapon.damage * damageMultiplier, 0.01f),
+                    weapon.projectileLifetime,
+                    gameObject);
+                firedAny = true;
+            }
+
+            if (!firedAny)
             {
                 return false;
             }
-
-            Transform projectileTransform = projectile.transform;
-            projectileTransform.SetParent(null, true);
-            projectileTransform.SetPositionAndRotation(
-                spawnPosition,
-                Quaternion.LookRotation(direction.normalized, Vector3.up));
-            if (!projectile.gameObject.activeSelf)
-            {
-                projectile.gameObject.SetActive(true);
-            }
-
-            projectile.Initialize(
-                direction.normalized,
-                SanitizePositive(weapon.projectileSpeed * projectileSpeedMultiplier, 0.01f),
-                SanitizePositive(weapon.damage * damageMultiplier, 0.01f),
-                weapon.projectileLifetime,
-                gameObject);
 
             GameFeelController.Instance?.OnPlayerShot(spawnPoint.position, direction, transform.root);
 

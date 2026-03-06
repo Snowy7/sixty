@@ -26,6 +26,7 @@ namespace Sixty.Gameplay
         [SerializeField] private float dashShake = 0.06f;
         [SerializeField] private float pickupShake = 0.045f;
         [SerializeField] private float roomClearShake = 0.11f;
+        [SerializeField] private float bossPhaseShiftShake = 0.16f;
 
         [Header("Hit Stop")]
         [SerializeField] private bool enableHitStop = true;
@@ -121,7 +122,11 @@ namespace Sixty.Gameplay
             }
 
             Instance = this;
-            defaultFixedDelta = Time.fixedDeltaTime;
+            defaultFixedDelta = Mathf.Max(0.005f, Time.fixedDeltaTime);
+            if (defaultFixedDelta < 0.02f)
+            {
+                defaultFixedDelta = 0.02f;
+            }
             EnsureAudioSource();
             GenerateFallbackClips();
             PrewarmBurstPool();
@@ -138,6 +143,7 @@ namespace Sixty.Gameplay
 
         protected override void OnIaDisable()
         {
+            RestoreTimescaleState();
             IaEventBus.Unsubscribe<RoomClearedEvent>(HandleRoomClearedEvent);
             IaEventBus.Unsubscribe<RunWonEvent>(HandleRunWonEvent);
             IaEventBus.Unsubscribe<TimeChangedEvent>(HandleTimeChangedEvent);
@@ -146,6 +152,7 @@ namespace Sixty.Gameplay
 
         protected override void OnIaDestroy()
         {
+            RestoreTimescaleState();
             if (Instance == this)
             {
                 Instance = null;
@@ -240,6 +247,22 @@ namespace Sixty.Gameplay
             FlashScreen(pickupColor, 0.16f, 0.12f);
             PlaySfx(SfxEvent.Pickup);
             postProcessFeedback?.OnPickup();
+        }
+
+        public void OnBossPhaseShift(Vector3 position, int phase)
+        {
+            Color phaseColor = phase switch
+            {
+                3 => new Color(1f, 0.22f, 0.18f, 1f),
+                2 => new Color(1f, 0.55f, 0.24f, 1f),
+                _ => roomClearColor
+            };
+
+            AddShake(bossPhaseShiftShake + (0.02f * Mathf.Clamp(phase, 1, 3)));
+            SpawnBurst(position, Vector3.up, phaseColor, 64, 10f, 20f, 0.11f, 0.42f);
+            SpawnBurst(position, Vector3.up, Color.white, 26, 6f, 13f, 0.07f, 0.22f);
+            FlashScreen(phaseColor, 0.17f, 0.18f);
+            postProcessFeedback?.OnBossPhaseShift(phase);
         }
 
         private void HandleRoomClearedEvent(RoomClearedEvent evt)
@@ -413,6 +436,22 @@ namespace Sixty.Gameplay
             Time.timeScale = 1f;
             Time.fixedDeltaTime = defaultFixedDelta;
             hitStopRoutine = null;
+        }
+
+        private void RestoreTimescaleState()
+        {
+            if (hitStopRoutine != null)
+            {
+                StopCoroutine(hitStopRoutine);
+                hitStopRoutine = null;
+            }
+
+            if (Time.timeScale != 1f)
+            {
+                Time.timeScale = 1f;
+            }
+
+            Time.fixedDeltaTime = defaultFixedDelta > 0.0001f ? defaultFixedDelta : 0.02f;
         }
 
         private void SpawnBurst(Vector3 position, Vector3 direction, Color color, int count, float speedMin, float speedMax, float startSize, float lifetime)
@@ -1033,6 +1072,17 @@ namespace Sixty.Gameplay
             vignettePulse = Mathf.Max(vignettePulse, 0.2f);
             lensPulse = Mathf.Min(lensPulse, -0.18f);
             TriggerFlash(new Color(0.75f, 1f, 0.82f, 1f), 0.26f);
+        }
+
+        public void OnBossPhaseShift(int phase)
+        {
+            float phaseBoost = Mathf.Clamp(phase, 1, 3) * 0.05f;
+            chromaticPulse = Mathf.Max(chromaticPulse, 0.18f + phaseBoost);
+            vignettePulse = Mathf.Max(vignettePulse, 0.1f + (phaseBoost * 0.75f));
+            lensPulse = Mathf.Min(lensPulse, -0.08f - (phaseBoost * 0.3f));
+            TriggerFlash(
+                phase >= 3 ? new Color(1f, 0.26f, 0.22f, 1f) : new Color(1f, 0.58f, 0.28f, 1f),
+                0.24f + (phaseBoost * 0.5f));
         }
 
         private void TriggerFlash(Color color, float intensity)

@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: W_Shotgun
   m_EditorClassIdentifier: Assembly-CSharp::Sixty.Combat.WeaponDefinition
   weaponName: Shotgun
-  fireRate: 1.5
-  damage: 8
-  projectilePrefab: {fileID: 7870201749674449126, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
-  projectileSpeed: 40
-  projectileLifetime: 0.8
+  fireRate: 1.6
+  damage: 10
+  projectilePrefab: {fileID: 8688768032114643768, guid: 54dd2440e57c28442b3ad1774741df1d, type: 3}
+  projectileSpeed: 36
+  projectileLifetime: 0.7
+  projectileCount: 8
+  spreadAngle: 18

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-691048116845142178
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Shader Graphs_Ground
+  m_Shader: {fileID: -6465566751694194690, guid: c66182fba94d31549a0261d331692956, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses:
+  - MOTIONVECTORS
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _EnemyPositionsTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CellSize: 1
+    - _EmissionIntensity: 4
+    - _EnemyCount: 0
+    - _FalloffExponent: 1.5
+    - _Feather: 0.02
+    - _GridRotation: 0
+    - _InfluenceRadius: 3
+    - _Light1Radius: 4
+    - _Light1Strength: 1
+    - _LineWidth: 0.03
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    m_Colors:
+    - _BaseColor: {r: 0.2264151, g: 0.21974012, b: 0.19971521, a: 1}
+    - _EnemyHighlight: {r: 1, g: 0.13679248, b: 0.16863294, a: 1}
+    - _HighlightColor: {r: 0.43867922, g: 1, b: 0.9084116, a: 1}
+    - _Light1Pos: {r: -100000, g: 0, b: -100000, a: 0}
+    - _LineColor: {r: 0.122641504, g: 0.122063, b: 0.122063, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

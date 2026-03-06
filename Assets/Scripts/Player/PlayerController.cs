@@ -65,7 +65,9 @@ namespace Sixty.Player
         private bool controllerAimActive;
         private Transform stickyTarget;
         private float stickyTargetExpiresAt;
+        private float externalMoveSpeedMultiplier = 1f;
         private readonly Collider[] aimAssistBuffer = new Collider[96];
+        private bool combatInputLocked;
 
         private bool IsDashing => dashTimer > 0f;
         
@@ -129,6 +131,11 @@ namespace Sixty.Player
                 isAttacking = Gamepad.current.rightTrigger.ReadValue() > 0.35f;
             }
 
+            if (combatInputLocked)
+            {
+                return;
+            }
+
             if (isAttacking && weaponController != null)
             {
                 if (!weaponController.CanFireNow)
@@ -162,6 +169,7 @@ namespace Sixty.Player
                 desiredSpeed = moveSpeed;
             }
 
+            desiredSpeed *= Mathf.Max(0.1f, externalMoveSpeedMultiplier);
             Vector3 nextPosition = body.position + (desiredDirection * desiredSpeed * fixedDeltaTime);
             if (lockVerticalPosition)
             {
@@ -187,6 +195,21 @@ namespace Sixty.Player
             return true;
         }
 
+        public void SetExternalMoveSpeedMultiplier(float multiplier)
+        {
+            externalMoveSpeedMultiplier = Mathf.Clamp(multiplier, 0.2f, 4f);
+        }
+
+        public void RefreshDashCooldown()
+        {
+            dashCooldownTimer = 0f;
+        }
+
+        public void SetCombatInputLocked(bool locked)
+        {
+            combatInputLocked = locked;
+        }
+
         private void BindActions()
         {
             if (inputActions == null)
@@ -204,6 +227,11 @@ namespace Sixty.Player
 
         private void OnDashPerformed(InputAction.CallbackContext context)
         {
+            if (combatInputLocked)
+            {
+                return;
+            }
+
             if (dashCooldownTimer > 0f || IsDashing)
             {
                 return;

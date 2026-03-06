@@ -130,10 +130,7 @@ namespace Sixty.Enemies
                 hitFlash.PlayHitReaction(true);
             }
 
-            GameFeelController.Instance?.OnEnemyHit(
-                transform.position + (Vector3.up * 0.9f),
-                false,
-                transform);
+            GameFeelController.Instance?.OnBossPhaseShift(transform.position + (Vector3.up * 0.9f), currentPhase);
         }
     }
 }

@@ -205,10 +205,12 @@ namespace Sixty.Enemies
 
         private bool TryResolveTarget()
         {
-            if (target != null)
+            if (target != null && target.gameObject.activeInHierarchy)
             {
                 return true;
             }
+
+            target = null;
 
             if (Time.time < nextPlayerLookupAt)
             {
@@ -216,7 +218,7 @@ namespace Sixty.Enemies
             }
 
             nextPlayerLookupAt = Time.time + Mathf.Max(0.05f, playerLookupInterval);
-            if (cachedPlayer == null)
+            if (cachedPlayer == null || !cachedPlayer.isActiveAndEnabled)
             {
                 cachedPlayer = FindFirstObjectByType<PlayerController>();
             }

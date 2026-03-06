@@ -21,6 +21,7 @@ namespace Sixty.Core
         public float TimeRemaining { get; private set; }
         public int DeathCount { get; private set; }
         public bool IsOutOfTime => TimeRemaining <= 0f;
+        public bool IsClockPaused => isClockPaused;
         
         protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.World;
         protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
@@ -31,6 +32,7 @@ namespace Sixty.Core
         public event Action OnTimeOut;
 
         private bool hasTimedOut;
+        private bool isClockPaused;
 
         protected override void OnIaAwake()
         {
@@ -41,7 +43,9 @@ namespace Sixty.Core
             }
 
             Instance = this;
+            Time.timeScale = 1f;
             DeathCount = Mathf.Max(0, PlayerPrefs.GetInt(DeathCountPrefsKey, 0));
+            SixtyMetaProgression.RecordDeath(DeathCount);
             ResetRunClock();
         }
 
@@ -55,7 +59,7 @@ namespace Sixty.Core
 
         public override void OnIaUpdate(float deltaTime)
         {
-            if (hasTimedOut)
+            if (hasTimedOut || isClockPaused)
             {
                 return;
             }
@@ -66,20 +70,32 @@ namespace Sixty.Core
         public float GetStartingTimeForCurrentDeathCount()
         {
             float startTime = baseTimeSeconds + (DeathCount * timePerDeathSeconds);
+            MetaProgressionSnapshot snapshot = SixtyMetaProgression.GetSnapshot(DeathCount);
+            if (snapshot.StartingBonusUnlocked)
+            {
+                startTime += snapshot.StartingBonusSeconds;
+            }
+
             return Mathf.Min(startTime, maxStartingTimeSeconds);
         }
 
         public void ResetRunClock()
         {
             hasTimedOut = false;
+            isClockPaused = false;
             TimeRemaining = GetStartingTimeForCurrentDeathCount();
             OnTimeChanged?.Invoke(TimeRemaining, 0f);
             IaEventBus.Publish(new TimeChangedEvent(TimeRemaining, 0f));
         }
 
+        public void SetClockPaused(bool paused)
+        {
+            isClockPaused = paused;
+        }
+
         public void Tick(float deltaSeconds)
         {
-            if (deltaSeconds <= 0f || hasTimedOut)
+            if (deltaSeconds <= 0f || hasTimedOut || isClockPaused)
             {
                 return;
             }
@@ -135,9 +151,11 @@ namespace Sixty.Core
             }
 
             hasTimedOut = true;
+            isClockPaused = false;
             DeathCount++;
             PlayerPrefs.SetInt(DeathCountPrefsKey, DeathCount);
             PlayerPrefs.Save();
+            SixtyMetaProgression.RecordDeath(DeathCount);
 
             OnDeathCountChanged?.Invoke(DeathCount);
             OnTimeOut?.Invoke();
@@ -234,5 +252,51 @@ namespace Sixty.Core
 
     public struct RunWonEvent
     {
+    }
+
+    public struct RewardSelectionStartedEvent
+    {
+        public string Option1;
+        public string Option2;
+        public string Option3;
+
+        public RewardSelectionStartedEvent(string option1, string option2, string option3)
+        {
+            Option1 = option1;
+            Option2 = option2;
+            Option3 = option3;
+        }
+    }
+
+    public struct RewardSelectedEvent
+    {
+        public string Label;
+
+        public RewardSelectedEvent(string label)
+        {
+            Label = label;
+        }
+    }
+
+    public struct PassiveSelectedEvent
+    {
+        public int PassiveType;
+        public string Label;
+
+        public PassiveSelectedEvent(int passiveType, string label)
+        {
+            PassiveType = passiveType;
+            Label = label;
+        }
+    }
+
+    public struct EnemyKilledEvent
+    {
+        public Transform Victim;
+
+        public EnemyKilledEvent(Transform victim)
+        {
+            Victim = victim;
+        }
     }
 }
