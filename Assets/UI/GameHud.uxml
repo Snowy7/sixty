@@ -5,63 +5,32 @@
         <!-- Top Bar -->
         <ui:VisualElement class="top-bar" picking-mode="Ignore">
 
-            <!-- Top Left: Room Progress -->
+            <!-- Top Left: Weapon -->
             <ui:VisualElement class="top-left" picking-mode="Ignore">
-                <ui:VisualElement class="info-panel" picking-mode="Ignore">
-                    <ui:VisualElement class="info-row" picking-mode="Ignore">
-                        <ui:Label class="info-label" text="ROOM" />
-                        <ui:Label name="room-value" class="info-value" text="1 / 10" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="progress-track" picking-mode="Ignore">
-                        <ui:VisualElement name="room-progress-fill" class="progress-fill" picking-mode="Ignore" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="info-row" picking-mode="Ignore">
-                        <ui:Label class="info-label" text="ENEMIES" />
-                        <ui:Label name="enemies-value" class="info-value enemies-accent" text="0" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Top Center: Timer -->
-            <ui:VisualElement class="top-center" picking-mode="Ignore">
-                <ui:VisualElement class="timer-block" picking-mode="Ignore">
-                    <ui:VisualElement class="timer-frame" picking-mode="Ignore">
-                        <ui:Label name="timer-value" class="timer-value" text="60.0" />
-                    </ui:VisualElement>
-                    <ui:Label class="timer-unit" text="SEC" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-
-            <!-- Top Right: Weapon Panel -->
-            <ui:VisualElement class="top-right" picking-mode="Ignore">
                 <ui:VisualElement class="weapon-panel" picking-mode="Ignore">
-                    <ui:Label name="weapon-name" class="weapon-name" text="PULSE RIFLE" />
-                    <ui:VisualElement class="weapon-stats-grid" picking-mode="Ignore">
-                        <ui:VisualElement class="stat-row" picking-mode="Ignore">
-                            <ui:Label class="stat-label" text="DMG" />
-                            <ui:VisualElement class="stat-bar-track" picking-mode="Ignore">
-                                <ui:VisualElement name="stat-bar-dmg" class="stat-bar-fill stat-dmg" picking-mode="Ignore" />
-                            </ui:VisualElement>
-                            <ui:Label name="stat-val-dmg" class="stat-val" text="8.0" />
+                    <ui:VisualElement class="weapon-icon" picking-mode="Ignore" />
+                    <ui:VisualElement class="weapon-info" picking-mode="Ignore">
+                        <ui:VisualElement class="weapon-header" picking-mode="Ignore">
+                            <ui:Label name="weapon-name" class="weapon-name" text="PULSE RIFLE" />
+                            <ui:Label name="weapon-rate" class="weapon-rate" text="8/s" />
                         </ui:VisualElement>
-                        <ui:VisualElement class="stat-row" picking-mode="Ignore">
-                            <ui:Label class="stat-label" text="ROF" />
-                            <ui:VisualElement class="stat-bar-track" picking-mode="Ignore">
-                                <ui:VisualElement name="stat-bar-rof" class="stat-bar-fill stat-rof" picking-mode="Ignore" />
-                            </ui:VisualElement>
-                            <ui:Label name="stat-val-rof" class="stat-val" text="8.0" />
-                        </ui:VisualElement>
-                        <ui:VisualElement class="stat-row" picking-mode="Ignore">
-                            <ui:Label class="stat-label" text="SPD" />
-                            <ui:VisualElement class="stat-bar-track" picking-mode="Ignore">
-                                <ui:VisualElement name="stat-bar-spd" class="stat-bar-fill stat-spd" picking-mode="Ignore" />
-                            </ui:VisualElement>
-                            <ui:Label name="stat-val-spd" class="stat-val" text="45" />
+                        <ui:VisualElement name="bullet-pips" class="bullet-pips" picking-mode="Ignore">
+                            <ui:VisualElement class="pip pip-filled" picking-mode="Ignore" />
+                            <ui:VisualElement class="pip pip-filled" picking-mode="Ignore" />
+                            <ui:VisualElement class="pip pip-filled" picking-mode="Ignore" />
+                            <ui:VisualElement class="pip pip-filled" picking-mode="Ignore" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:VisualElement class="weapon-extra" picking-mode="Ignore">
-                        <ui:Label name="projectile-count" class="weapon-tag" text="x1" />
-                        <ui:Label name="passive-label" class="passive-tag" text="NO PASSIVE" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Top Right: Passive Card -->
+            <ui:VisualElement class="top-right" picking-mode="Ignore">
+                <ui:VisualElement name="passive-card" class="passive-card" picking-mode="Ignore">
+                    <ui:VisualElement class="passive-icon" picking-mode="Ignore" />
+                    <ui:VisualElement class="passive-info" picking-mode="Ignore">
+                        <ui:Label name="passive-label" class="passive-label" text="NO PASSIVE" />
+                        <ui:Label name="passive-desc" class="passive-desc" text="" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -78,38 +47,65 @@
         <!-- Bottom Bar -->
         <ui:VisualElement class="bottom-bar" picking-mode="Ignore">
 
-            <!-- Bottom Left: Meta -->
+            <!-- Bottom Left: Room Progress -->
             <ui:VisualElement class="bottom-left" picking-mode="Ignore">
-                <ui:Label name="meta-text" class="meta-text" text="" />
-            </ui:VisualElement>
-
-            <!-- Bottom Center: Rewards -->
-            <ui:VisualElement name="reward-container" class="reward-container" picking-mode="Ignore">
-                <ui:Label class="reward-title" text="CHOOSE REWARD" />
-                <ui:VisualElement class="reward-options" picking-mode="Ignore">
-                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
-                        <ui:Label class="reward-key" text="1" />
-                        <ui:Label name="reward-1-text" class="reward-label" text="---" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
-                        <ui:Label class="reward-key" text="2" />
-                        <ui:Label name="reward-2-text" class="reward-label" text="---" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="reward-option" picking-mode="Ignore">
-                        <ui:Label class="reward-key" text="3" />
-                        <ui:Label name="reward-3-text" class="reward-label" text="---" />
-                    </ui:VisualElement>
+                <ui:Label name="room-value" class="room-label" text="ROOM 1/10" />
+                <ui:VisualElement name="room-segments" class="room-segments" picking-mode="Ignore">
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                    <ui:VisualElement class="seg seg-empty" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="enemies-row" picking-mode="Ignore">
+                    <ui:Label class="enemies-label" text="ENEMIES" />
+                    <ui:Label name="enemies-value" class="enemies-value" text="0" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <!-- Bottom Right: Dash -->
+            <!-- Bottom Center: Timer -->
+            <ui:VisualElement class="bottom-center" picking-mode="Ignore">
+                <ui:Label name="timer-warning" class="timer-warning" text="" />
+                <ui:VisualElement class="timer-block" picking-mode="Ignore">
+                    <ui:Label name="timer-value" class="timer-value" text="60.0" />
+                </ui:VisualElement>
+                <ui:Label class="timer-unit" text="SEC" />
+            </ui:VisualElement>
+
+            <!-- Bottom Right: Boss/Target Health -->
             <ui:VisualElement class="bottom-right" picking-mode="Ignore">
-                <ui:VisualElement class="dash-panel" picking-mode="Ignore">
-                    <ui:Label class="dash-label" text="DASH" />
-                    <ui:VisualElement class="dash-bar-track" picking-mode="Ignore">
-                        <ui:VisualElement name="dash-bar-fill" class="dash-bar-fill" picking-mode="Ignore" />
+                <ui:VisualElement name="target-health-panel" class="target-health-panel" picking-mode="Ignore">
+                    <ui:VisualElement class="target-header" picking-mode="Ignore">
+                        <ui:Label name="target-name" class="target-name" text="" />
+                        <ui:Label name="target-hp-value" class="target-hp-value" text="" />
                     </ui:VisualElement>
-                    <ui:Label name="dash-status" class="dash-status" text="READY" />
+                    <ui:VisualElement class="target-bar-track" picking-mode="Ignore">
+                        <ui:VisualElement name="target-bar-fill" class="target-bar-fill" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Reward Overlay (center, above bottom bar) -->
+        <ui:VisualElement name="reward-container" class="reward-container" picking-mode="Ignore">
+            <ui:Label class="reward-title" text="CHOOSE REWARD" />
+            <ui:VisualElement class="reward-options" picking-mode="Ignore">
+                <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                    <ui:Label class="reward-key" text="1" />
+                    <ui:Label name="reward-1-text" class="reward-label" text="---" />
+                </ui:VisualElement>
+                <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                    <ui:Label class="reward-key" text="2" />
+                    <ui:Label name="reward-2-text" class="reward-label" text="---" />
+                </ui:VisualElement>
+                <ui:VisualElement class="reward-option" picking-mode="Ignore">
+                    <ui:Label class="reward-key" text="3" />
+                    <ui:Label name="reward-3-text" class="reward-label" text="---" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

@@ -35,13 +35,13 @@ namespace Sixty.Gameplay
         [SerializeField] private float hitStopOnPlayerDamageSeconds = 0.032f;
 
         [Header("Particle Colors")]
-        [SerializeField] private Color shootColor = new Color(0.65f, 0.95f, 1f, 1f);
-        [SerializeField] private Color enemyHitColor = new Color(1f, 0.5f, 0.32f, 1f);
-        [SerializeField] private Color enemyKillColor = new Color(1f, 0.76f, 0.22f, 1f);
-        [SerializeField] private Color playerDamageColor = new Color(1f, 0.27f, 0.2f, 1f);
-        [SerializeField] private Color dashColor = new Color(0.45f, 0.9f, 1f, 1f);
-        [SerializeField] private Color pickupColor = new Color(1f, 0.88f, 0.28f, 1f);
-        [SerializeField] private Color roomClearColor = new Color(0.7f, 1f, 0.7f, 1f);
+        [SerializeField] private Color shootColor = new Color(0.3f, 0.92f, 1f, 1f);
+        [SerializeField] private Color enemyHitColor = new Color(1f, 0.55f, 0.15f, 1f);
+        [SerializeField] private Color enemyKillColor = new Color(1f, 0.7f, 0.1f, 1f);
+        [SerializeField] private Color playerDamageColor = new Color(1f, 0.2f, 0.12f, 1f);
+        [SerializeField] private Color dashColor = new Color(0.2f, 0.88f, 1f, 1f);
+        [SerializeField] private Color pickupColor = new Color(1f, 0.82f, 0.15f, 1f);
+        [SerializeField] private Color roomClearColor = new Color(0.5f, 1f, 0.6f, 1f);
 
         [Header("Burst Pool")]
         [SerializeField] private int prewarmedBursts = 56;

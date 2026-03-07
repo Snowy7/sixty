@@ -10,8 +10,8 @@ namespace Sixty.UI
         [SerializeField] private Vector3 offset = new Vector3(0f, 2.2f, 0f);
         [SerializeField] private float barWidth = 1.4f;
         [SerializeField] private float barHeight = 0.16f;
-        [SerializeField] private Color fullColor = new Color(0.2f, 1f, 0.4f, 1f);
-        [SerializeField] private Color lowColor = new Color(1f, 0.22f, 0.18f, 1f);
+        [SerializeField] private Color fullColor = new Color(1f, 0.4f, 0.08f, 1f);
+        [SerializeField] private Color lowColor = new Color(1f, 0.15f, 0.08f, 1f);
         [SerializeField] private Color backgroundColor = new Color(0.08f, 0.08f, 0.1f, 0.85f);
         [SerializeField] private Color borderColor = new Color(0.3f, 0.3f, 0.35f, 0.9f);
         [SerializeField] private bool hideWhenFull = true;

@@ -570,8 +570,8 @@ namespace Sixty.World
                 triggerCollider,
                 new Renderer[] { wall.GetComponent<Renderer>(), line.GetComponent<Renderer>() },
                 4.5f, 8.2f,
-                new Color(1f, 0.22f, 0.62f, 1f),
-                new Color(0.24f, 1f, 0.92f, 1f));
+                new Color(1f, 0.35f, 0.08f, 1f),
+                new Color(0.1f, 0.95f, 0.88f, 1f));
 
             generatedDoors.Add(door);
         }

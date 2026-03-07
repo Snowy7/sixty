@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Ia.Core.Events;
 using Ia.Core.Update;
 using Sixty.Combat;
@@ -16,15 +17,12 @@ namespace Sixty.UI
         private const int ChargeBeamUnlockDeaths = 10;
         private const int StartingBonusUnlockDeaths = 25;
 
-        private const float MaxDmgDisplay = 40f;
-        private const float MaxRofDisplay = 20f;
-        private const float MaxSpdDisplay = 80f;
-
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private RunDirector runDirector;
         [SerializeField] private float lowTimeThreshold = 10f;
         [SerializeField] private float pulseDuration = 0.2f;
         [SerializeField] private float notificationDuration = 2.5f;
+        [SerializeField] private int maxBulletPips = 8;
 
         private TimeManager timeManager;
         private WeaponController weaponController;
@@ -33,32 +31,29 @@ namespace Sixty.UI
 
         // UI elements
         private Label timerValue;
+        private Label timerWarning;
         private Label roomValue;
         private Label enemiesValue;
         private Label weaponName;
-        private Label projectileCount;
+        private Label weaponRate;
+        private VisualElement bulletPips;
         private Label passiveLabel;
-        private Label metaText;
+        private Label passiveDesc;
+        private VisualElement passiveCard;
         private Label reward1Text;
         private Label reward2Text;
         private Label reward3Text;
         private VisualElement rewardContainer;
 
-        // Weapon stat bars
-        private VisualElement statBarDmg;
-        private VisualElement statBarRof;
-        private VisualElement statBarSpd;
-        private Label statValDmg;
-        private Label statValRof;
-        private Label statValSpd;
-
-        // Room progress
-        private VisualElement roomProgressFill;
+        // Room segments
+        private VisualElement roomSegments;
         private int totalRooms = 10;
 
-        // Dash
-        private VisualElement dashBarFill;
-        private Label dashStatus;
+        // Target health (boss)
+        private VisualElement targetHealthPanel;
+        private Label targetName;
+        private Label targetHpValue;
+        private VisualElement targetBarFill;
 
         // Notifications
         private VisualElement notificationContainer;
@@ -70,6 +65,7 @@ namespace Sixty.UI
         private float lossPulseTimer;
         private float lastDisplayedTime = float.NaN;
         private bool terminalStatusLocked;
+        private Health trackedBossHealth;
 
         protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.UI;
         protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
@@ -127,28 +123,26 @@ namespace Sixty.UI
 
             VisualElement root = uiDocument.rootVisualElement;
             timerValue = root.Q<Label>("timer-value");
+            timerWarning = root.Q<Label>("timer-warning");
             roomValue = root.Q<Label>("room-value");
             enemiesValue = root.Q<Label>("enemies-value");
             weaponName = root.Q<Label>("weapon-name");
-            projectileCount = root.Q<Label>("projectile-count");
+            weaponRate = root.Q<Label>("weapon-rate");
+            bulletPips = root.Q<VisualElement>("bullet-pips");
             passiveLabel = root.Q<Label>("passive-label");
-            metaText = root.Q<Label>("meta-text");
+            passiveDesc = root.Q<Label>("passive-desc");
+            passiveCard = root.Q<VisualElement>("passive-card");
             reward1Text = root.Q<Label>("reward-1-text");
             reward2Text = root.Q<Label>("reward-2-text");
             reward3Text = root.Q<Label>("reward-3-text");
             rewardContainer = root.Q<VisualElement>("reward-container");
 
-            statBarDmg = root.Q<VisualElement>("stat-bar-dmg");
-            statBarRof = root.Q<VisualElement>("stat-bar-rof");
-            statBarSpd = root.Q<VisualElement>("stat-bar-spd");
-            statValDmg = root.Q<Label>("stat-val-dmg");
-            statValRof = root.Q<Label>("stat-val-rof");
-            statValSpd = root.Q<Label>("stat-val-spd");
+            roomSegments = root.Q<VisualElement>("room-segments");
 
-            roomProgressFill = root.Q<VisualElement>("room-progress-fill");
-
-            dashBarFill = root.Q<VisualElement>("dash-bar-fill");
-            dashStatus = root.Q<Label>("dash-status");
+            targetHealthPanel = root.Q<VisualElement>("target-health-panel");
+            targetName = root.Q<Label>("target-name");
+            targetHpValue = root.Q<Label>("target-hp-value");
+            targetBarFill = root.Q<VisualElement>("target-bar-fill");
 
             notificationContainer = root.Q<VisualElement>("notification-container");
             notificationText = root.Q<Label>("notification-text");
@@ -163,7 +157,8 @@ namespace Sixty.UI
             if (playerController == null) playerController = FindFirstObjectByType<PlayerController>();
 
             UpdateWeaponDisplay();
-            UpdateDashDisplay();
+            UpdatePassiveDisplay();
+            UpdateBossHealthDisplay();
             UpdatePulseTimers(deltaTime);
         }
 
@@ -172,12 +167,10 @@ namespace Sixty.UI
             if (timeManager != null)
             {
                 UpdateTimerDisplay(timeManager.TimeRemaining);
-                UpdateMetaDisplay(timeManager.DeathCount);
             }
             else
             {
                 UpdateTimerDisplay(0f);
-                UpdateMetaDisplay(0);
             }
 
             if (runDirector != null)
@@ -189,6 +182,7 @@ namespace Sixty.UI
             HideNotification();
             HideRewards();
             UpdateWeaponDisplay();
+            UpdatePassiveDisplay();
         }
 
         // --- Event Handlers ---
@@ -200,7 +194,7 @@ namespace Sixty.UI
             UpdateTimerDisplay(evt.Remaining);
         }
 
-        private void OnDeathCountChanged(DeathCountChangedEvent evt) => UpdateMetaDisplay(evt.DeathCount);
+        private void OnDeathCountChanged(DeathCountChangedEvent evt) { }
 
         private void OnTimeOut(TimeOutEvent evt)
         {
@@ -242,12 +236,19 @@ namespace Sixty.UI
                 _ => "notif-combat"
             };
             ShowNotification(label, sub, cls, notificationDuration);
+
+            // Track boss health when entering boss room
+            if (rt == RunDirector.RoomType.Boss)
+                FindBossHealth();
+            else
+                ClearBossHealth();
         }
 
         private void OnRoomCleared(RoomClearedEvent evt)
         {
             if (terminalStatusLocked || evt.Room <= 0 || evt.Room >= evt.TotalRooms) return;
             ShowNotification("ROOM CLEAR", "PROCEED TO EXIT", "notif-clear", notificationDuration);
+            ClearBossHealth();
         }
 
         private void OnEnemiesRemaining(EnemiesRemainingChangedEvent evt) => UpdateEnemiesDisplay(evt.Remaining);
@@ -257,6 +258,7 @@ namespace Sixty.UI
             terminalStatusLocked = true;
             ShowNotification("RUN COMPLETE", "CONGRATULATIONS", "notif-win", -1f);
             HideRewards();
+            ClearBossHealth();
         }
 
         private void OnRewardStarted(RewardSelectionStartedEvent evt)
@@ -295,8 +297,22 @@ namespace Sixty.UI
             timerValue.RemoveFromClassList("pulse-loss");
             timerValue.RemoveFromClassList("time-critical");
 
-            if (seconds <= lowTimeThreshold)
+            bool critical = seconds <= lowTimeThreshold;
+            if (critical)
                 timerValue.AddToClassList("time-critical");
+
+            if (timerWarning != null)
+            {
+                if (critical)
+                {
+                    timerWarning.text = $"UNDER {lowTimeThreshold:0}s";
+                    timerWarning.AddToClassList("visible");
+                }
+                else
+                {
+                    timerWarning.RemoveFromClassList("visible");
+                }
+            }
         }
 
         private void UpdatePulseTimers(float dt)
@@ -325,12 +341,24 @@ namespace Sixty.UI
         private void UpdateRoomDisplay(int room, int total)
         {
             if (roomValue != null)
-                roomValue.text = room <= 0 ? "-- / --" : $"{room} / {total}";
+                roomValue.text = room <= 0 ? "ROOM --/--" : $"ROOM {room}/{total}";
 
-            if (roomProgressFill != null && total > 0)
+            if (roomSegments != null)
             {
-                float pct = Mathf.Clamp01((float)room / total) * 100f;
-                roomProgressFill.style.width = new StyleLength(new Length(pct, LengthUnit.Percent));
+                List<VisualElement> segs = roomSegments.Query(className: "seg").ToList();
+                for (int i = 0; i < segs.Count; i++)
+                {
+                    segs[i].RemoveFromClassList("seg-empty");
+                    segs[i].RemoveFromClassList("seg-filled");
+                    segs[i].RemoveFromClassList("seg-current");
+
+                    if (i < room - 1)
+                        segs[i].AddToClassList("seg-filled");
+                    else if (i == room - 1)
+                        segs[i].AddToClassList("seg-current");
+                    else
+                        segs[i].AddToClassList("seg-empty");
+                }
             }
         }
 
@@ -349,77 +377,98 @@ namespace Sixty.UI
 
             if (weaponController != null)
             {
-                float dmg = weaponController.EffectiveDamage;
                 float rof = weaponController.EffectiveFireRate;
-                float spd = weaponController.EffectiveProjectileSpeed;
                 int count = weaponController.EffectiveProjectileCount;
 
-                SetStatBar(statBarDmg, statValDmg, dmg, MaxDmgDisplay);
-                SetStatBar(statBarRof, statValRof, rof, MaxRofDisplay);
-                SetStatBar(statBarSpd, statValSpd, spd, MaxSpdDisplay);
+                if (weaponRate != null)
+                    weaponRate.text = $"{rof:0}/s";
 
-                if (projectileCount != null)
-                    projectileCount.text = count > 1 ? $"x{count}" : "x1";
-            }
-
-            if (passiveLabel != null)
-            {
-                string pName = passiveController != null && passiveController.HasPassive
-                    ? passiveController.ActivePassiveLabel.ToUpper()
-                    : "NO PASSIVE";
-                passiveLabel.text = pName;
-            }
-        }
-
-        private void SetStatBar(VisualElement bar, Label val, float current, float max)
-        {
-            if (bar != null)
-            {
-                float pct = Mathf.Clamp01(current / max) * 100f;
-                bar.style.width = new StyleLength(new Length(pct, LengthUnit.Percent));
-            }
-
-            if (val != null)
-                val.text = $"{current:0.0}";
-        }
-
-        private void UpdateDashDisplay()
-        {
-            if (playerController == null || dashBarFill == null) return;
-
-            // Read dash cooldown state from player via reflection-free approach
-            // PlayerController exposes IsInvulnerable but not dash cooldown directly
-            // We check if dash is available by observing the player state
-            bool dashReady = !playerController.IsInvulnerable;
-
-            if (dashReady)
-            {
-                dashBarFill.style.width = new StyleLength(new Length(100f, LengthUnit.Percent));
-                dashBarFill.RemoveFromClassList("on-cooldown");
-                if (dashStatus != null)
+                if (bulletPips != null)
                 {
-                    dashStatus.text = "READY";
-                    dashStatus.RemoveFromClassList("on-cooldown");
+                    bulletPips.Clear();
+                    int pipCount = Mathf.Clamp(count, 1, maxBulletPips);
+                    for (int i = 0; i < pipCount; i++)
+                    {
+                        VisualElement pip = new VisualElement();
+                        pip.AddToClassList("pip");
+                        pip.AddToClassList("pip-filled");
+                        bulletPips.Add(pip);
+                    }
                 }
+            }
+        }
+
+        private void UpdatePassiveDisplay()
+        {
+            if (passiveCard == null) return;
+
+            bool hasPassive = passiveController != null && passiveController.HasPassive;
+            if (hasPassive)
+            {
+                passiveCard.AddToClassList("visible");
+                if (passiveLabel != null)
+                    passiveLabel.text = $"PASSIVE: {passiveController.ActivePassiveLabel.ToUpper()}";
+                if (passiveDesc != null)
+                    passiveDesc.text = RunPassiveController.GetPassiveDescription(passiveController.ActivePassive);
             }
             else
             {
-                dashBarFill.style.width = new StyleLength(new Length(30f, LengthUnit.Percent));
-                dashBarFill.AddToClassList("on-cooldown");
-                if (dashStatus != null)
-                {
-                    dashStatus.text = "COOLDOWN";
-                    dashStatus.AddToClassList("on-cooldown");
-                }
+                passiveCard.RemoveFromClassList("visible");
             }
         }
 
-        private void UpdateMetaDisplay(int deaths)
+        private void FindBossHealth()
         {
-            if (metaText == null) return;
-            MetaProgressionSnapshot snapshot = SixtyMetaProgression.GetSnapshot(deaths);
-            string nextUnlock = GetNextUnlockLabel(snapshot);
-            metaText.text = $"DEATHS: {deaths}  |  BOSS CLEARS: {snapshot.BossClears}  |  {nextUnlock.ToUpper()}";
+            // Look for the highest-HP enemy in the scene as the boss
+            Health[] allHealth = FindObjectsByType<Health>(FindObjectsSortMode.None);
+            Health best = null;
+            float bestMax = 0f;
+            foreach (Health h in allHealth)
+            {
+                if (h == null || h.IsDead) continue;
+                if (h.CompareTag("Player")) continue;
+                if (h.MaxHealth > bestMax)
+                {
+                    bestMax = h.MaxHealth;
+                    best = h;
+                }
+            }
+            trackedBossHealth = best;
+        }
+
+        private void ClearBossHealth()
+        {
+            trackedBossHealth = null;
+            if (targetHealthPanel != null)
+                targetHealthPanel.RemoveFromClassList("visible");
+        }
+
+        private void UpdateBossHealthDisplay()
+        {
+            if (targetHealthPanel == null) return;
+
+            if (trackedBossHealth == null || trackedBossHealth.IsDead)
+            {
+                targetHealthPanel.RemoveFromClassList("visible");
+                return;
+            }
+
+            targetHealthPanel.AddToClassList("visible");
+
+            if (targetName != null)
+                targetName.text = "BOSS";
+
+            float hp = trackedBossHealth.CurrentHealth;
+            float maxHp = trackedBossHealth.MaxHealth;
+
+            if (targetHpValue != null)
+                targetHpValue.text = $"{Mathf.CeilToInt(hp)}";
+
+            if (targetBarFill != null && maxHp > 0f)
+            {
+                float pct = Mathf.Clamp01(hp / maxHp) * 100f;
+                targetBarFill.style.width = new StyleLength(new Length(pct, LengthUnit.Percent));
+            }
         }
 
         // --- Notifications ---
@@ -479,17 +528,6 @@ namespace Sixty.UI
         {
             if (rewardContainer == null) return;
             rewardContainer.RemoveFromClassList("visible");
-        }
-
-        private static string GetNextUnlockLabel(MetaProgressionSnapshot snapshot)
-        {
-            if (!snapshot.ShotgunUnlocked)
-                return $"Shotgun in {Mathf.Max(0, ShotgunUnlockDeaths - snapshot.DeathCount)}";
-            if (!snapshot.ChargeBeamUnlocked)
-                return $"Charge Beam in {Mathf.Max(0, ChargeBeamUnlockDeaths - snapshot.DeathCount)}";
-            if (!snapshot.StartingBonusUnlocked)
-                return $"+5s start in {Mathf.Max(0, StartingBonusUnlockDeaths - snapshot.DeathCount)}";
-            return "All unlocks active";
         }
     }
 }

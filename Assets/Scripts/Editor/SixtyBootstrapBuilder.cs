@@ -43,7 +43,7 @@ namespace Sixty.EditorTools
         private const string ScalableMaterialsFolder = "Assets/Plugins/Scalable Grid Prototype Materials/Materials";
         private const string ScalableGroundMaterialsFolder = "Assets/Plugins/Scalable Grid Prototype Materials/Materials/Ground";
         private const float ArenaWallHalfExtent = 24f;
-        private const float ArenaWallHeight = 3.2f;
+        private const float ArenaWallHeight = 4.2f;
         private const float ArenaWallThickness = 1f;
         private const float ArenaFloorSize = 44f;
         private const float DoorOpeningWidth = 6.8f;
@@ -280,7 +280,7 @@ namespace Sixty.EditorTools
                         $"{ScalableGroundMaterialsFolder}/DarkGray_Ground_Prototype.mat"
                     },
                     $"{MaterialsFolder}/M_Floor.mat",
-                    new Color(0.08f, 0.09f, 0.12f)),
+                    new Color(0.1f, 0.11f, 0.14f)),
                 floorTrimMaterial = LoadMaterialFromPaths(
                     new[]
                     {
@@ -290,7 +290,7 @@ namespace Sixty.EditorTools
                         $"{ScalableGroundMaterialsFolder}/Gray_Ground_Prototype.mat"
                     },
                     $"{MaterialsFolder}/M_FloorTrim.mat",
-                    new Color(0.12f, 0.14f, 0.18f)),
+                    new Color(0.14f, 0.16f, 0.2f)),
                 wallMaterial = LoadMaterialFromPaths(
                     new[]
                     {
@@ -300,7 +300,7 @@ namespace Sixty.EditorTools
                         $"{ScalableMaterialsFolder}/Dark_Gray_Prototype.mat"
                     },
                     $"{MaterialsFolder}/M_Wall.mat",
-                    new Color(0.05f, 0.06f, 0.09f)),
+                    new Color(0.06f, 0.07f, 0.1f)),
                 coverMaterial = LoadMaterialFromPaths(
                     new[]
                     {
@@ -311,7 +311,7 @@ namespace Sixty.EditorTools
                         $"{ScalableMaterialsFolder}/Gray_Prototype.mat"
                     },
                     $"{MaterialsFolder}/M_Cover.mat",
-                    new Color(0.07f, 0.08f, 0.11f)),
+                    new Color(0.08f, 0.09f, 0.13f)),
                 accentMaterial = LoadMaterialFromPaths(
                     new[]
                     {
@@ -321,7 +321,7 @@ namespace Sixty.EditorTools
                         $"{DecimateMaterialsFolder}/GM-Grid-19-URP.mat"
                     },
                     $"{MaterialsFolder}/M_Accent.mat",
-                    new Color(0.05f, 0.65f, 0.72f)),
+                    new Color(0.05f, 0.72f, 0.78f)),
                 guideMaterial = LoadMaterialFromPaths(
                     new[]
                     {
@@ -333,29 +333,28 @@ namespace Sixty.EditorTools
                     },
                     $"{MaterialsFolder}/M_Guide.mat",
                     new Color(0.05f, 0.6f, 0.68f)),
-                // Use generated standard URP materials for gameplay actors/projectiles so hit flash tinting is always visible.
-                // Player: bright cyan to contrast enemy magenta
-                playerMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Player.mat", new Color(0.0f, 0.95f, 0.9f)),
-                playerProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_PlayerProjectile.mat", new Color(0.3f, 1f, 0.95f)),
-                // Enemies: hot magenta/pink spectrum
-                enemyProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_EnemyProjectile.mat", new Color(1f, 0.1f, 0.55f)),
-                pickupMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_ClockPickup.mat", new Color(1f, 0.85f, 0.15f)),
-                droneMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Drone.mat", new Color(1f, 0.08f, 0.65f)),
-                turretMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Turret.mat", new Color(0.95f, 0.15f, 0.75f)),
-                hunterMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Hunter.mat", new Color(1f, 0.12f, 0.58f)),
-                tankMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Tank.mat", new Color(0.88f, 0.1f, 0.5f)),
-                bossMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Boss.mat", new Color(1f, 0.05f, 0.42f))
+                // Player: bright cyan to contrast enemy orange
+                playerMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Player.mat", new Color(0.0f, 0.92f, 0.88f)),
+                playerProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_PlayerProjectile.mat", new Color(0.2f, 0.95f, 1f)),
+                // Enemies: orange/amber spectrum for strong contrast with cyan player
+                enemyProjectileMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_EnemyProjectile.mat", new Color(1f, 0.35f, 0.08f)),
+                pickupMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_ClockPickup.mat", new Color(1f, 0.78f, 0.1f)),
+                droneMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Drone.mat", new Color(1f, 0.45f, 0.05f)),
+                turretMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Turret.mat", new Color(0.95f, 0.35f, 0.08f)),
+                hunterMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Hunter.mat", new Color(1f, 0.5f, 0.1f)),
+                tankMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Tank.mat", new Color(0.92f, 0.38f, 0.05f)),
+                bossMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_Boss.mat", new Color(1f, 0.3f, 0.02f))
             };
 
             assets.floorPerformanceMaterial = CreateOrUpdateCheapSurfaceMaterial(
                 $"{MaterialsFolder}/M_Floor_Perf.mat",
                 assets.floorMaterial,
-                new Color(0.08f, 0.09f, 0.12f));
+                new Color(0.1f, 0.11f, 0.14f));
 
             assets.floorTrimPerformanceMaterial = CreateOrUpdateCheapSurfaceMaterial(
                 $"{MaterialsFolder}/M_FloorTrim_Perf.mat",
                 assets.floorTrimMaterial,
-                new Color(0.12f, 0.14f, 0.18f));
+                new Color(0.14f, 0.16f, 0.2f));
 
             assets.gameplayVolumeProfile = CreateOrUpdateGameplayVolumeProfile($"{ScriptableFolder}/VP_GameplayFeel.asset");
 
@@ -573,17 +572,18 @@ namespace Sixty.EditorTools
             // World root with RuntimeArenaBuilder
             GameObject world = new GameObject("World");
             RuntimeArenaBuilder arenaBuilder = world.AddComponent<RuntimeArenaBuilder>();
-            // Wall face material: warm tan/beige for the reference layered look
-            Material wallFaceMaterial = CreateOrUpdateMaterial($"{MaterialsFolder}/M_WallFace.mat", new Color(0.48f, 0.42f, 0.38f));
+            // Wall face material: bright emissive light strips on walls
+            Material wallFaceMaterial = CreateOrUpdateLitMaterial($"{MaterialsFolder}/M_WallFace.mat", new Color(0.7f, 0.78f, 0.85f));
             if (wallFaceMaterial != null)
             {
-                // Subtle emission for architectural surfaces, not gameplay glow
+                // Strong emission for architectural light panels
                 if (wallFaceMaterial.HasProperty("_EmissionColor"))
-                    wallFaceMaterial.SetColor("_EmissionColor", new Color(0.48f, 0.42f, 0.38f) * 0.4f);
+                    wallFaceMaterial.SetColor("_EmissionColor", new Color(0.7f, 0.78f, 0.85f) * 1.8f);
                 if (wallFaceMaterial.HasProperty("_Smoothness"))
-                    wallFaceMaterial.SetFloat("_Smoothness", 0.35f);
+                    wallFaceMaterial.SetFloat("_Smoothness", 0.75f);
                 if (wallFaceMaterial.HasProperty("_Metallic"))
-                    wallFaceMaterial.SetFloat("_Metallic", 0.05f);
+                    wallFaceMaterial.SetFloat("_Metallic", 0.2f);
+                wallFaceMaterial.EnableKeyword("_EMISSION");
                 EditorUtility.SetDirty(wallFaceMaterial);
             }
 
@@ -603,7 +603,7 @@ namespace Sixty.EditorTools
                 so.FindProperty("trimMaterial").objectReferenceValue = trimMaterial;
                 so.FindProperty("accentMaterial").objectReferenceValue = assets.accentMaterial;
                 so.FindProperty("guideMaterial").objectReferenceValue = guideMaterial;
-                so.FindProperty("wallClusterDensity").intValue = 14;
+                so.FindProperty("wallClusterDensity").intValue = 18;
             });
 
             RoomLayoutDirector roomLayoutDirector = world.AddComponent<RoomLayoutDirector>();
@@ -638,19 +638,19 @@ namespace Sixty.EditorTools
             {
                 Material voidInstanceMaterial = new Material(voidShader);
                 voidInstanceMaterial.enableInstancing = true;
-                voidInstanceMaterial.SetColor("_BaseColor", new Color(0.06f, 0.07f, 0.09f, 1f));
-                voidInstanceMaterial.SetColor("_TopColor", new Color(0.12f, 0.14f, 0.18f, 1f));
-                voidInstanceMaterial.SetColor("_GlowColor", new Color(0.4f, 0.85f, 0.95f, 1f));
-                voidInstanceMaterial.SetFloat("_GlowIntensity", 4.0f);
-                voidInstanceMaterial.SetFloat("_AmbientStrength", 0.35f);
-                voidInstanceMaterial.SetFloat("_NoiseScale", 0.04f);
-                voidInstanceMaterial.SetFloat("_NoiseStrength", 0.45f);
-                voidInstanceMaterial.SetFloat("_CavityWidth", 0.06f);
-                voidInstanceMaterial.SetFloat("_CavityStrength", 0.55f);
-                voidInstanceMaterial.SetColor("_CavityColor", new Color(0.02f, 0.025f, 0.035f, 1f));
-                voidInstanceMaterial.SetFloat("_TriangleScale", 0.5f);
-                voidInstanceMaterial.SetFloat("_TriangleDensity", 0.06f);
-                voidInstanceMaterial.SetFloat("_TriangleBrightness", 1.3f);
+                voidInstanceMaterial.SetColor("_BaseColor", new Color(0.04f, 0.045f, 0.065f, 1f));
+                voidInstanceMaterial.SetColor("_TopColor", new Color(0.1f, 0.12f, 0.16f, 1f));
+                voidInstanceMaterial.SetColor("_GlowColor", new Color(0.3f, 0.75f, 0.88f, 1f));
+                voidInstanceMaterial.SetFloat("_GlowIntensity", 5.5f);
+                voidInstanceMaterial.SetFloat("_AmbientStrength", 0.25f);
+                voidInstanceMaterial.SetFloat("_NoiseScale", 0.035f);
+                voidInstanceMaterial.SetFloat("_NoiseStrength", 0.55f);
+                voidInstanceMaterial.SetFloat("_CavityWidth", 0.07f);
+                voidInstanceMaterial.SetFloat("_CavityStrength", 0.65f);
+                voidInstanceMaterial.SetColor("_CavityColor", new Color(0.015f, 0.02f, 0.03f, 1f));
+                voidInstanceMaterial.SetFloat("_TriangleScale", 0.45f);
+                voidInstanceMaterial.SetFloat("_TriangleDensity", 0.08f);
+                voidInstanceMaterial.SetFloat("_TriangleBrightness", 1.6f);
                 AssetDatabase.CreateAsset(voidInstanceMaterial, $"{MaterialsFolder}/M_VoidCity.mat");
 
                 GameObject voidGo = new GameObject("VoidCityGenerator");
@@ -660,11 +660,11 @@ namespace Sixty.EditorTools
                 {
                     so.FindProperty("computeShader").objectReferenceValue = voidCompute;
                     so.FindProperty("instanceMaterial").objectReferenceValue = voidInstanceMaterial;
-                    so.FindProperty("cellSize").floatValue = 2.5f;
-                    so.FindProperty("baseY").floatValue = -0.2f;
-                    so.FindProperty("maxInstances").intValue = 32768;
-                    so.FindProperty("extentX").floatValue = 300f;
-                    so.FindProperty("extentZ").floatValue = 200f;
+                    so.FindProperty("cellSize").floatValue = 2.0f;
+                    so.FindProperty("baseY").floatValue = -0.3f;
+                    so.FindProperty("maxInstances").intValue = 49152;
+                    so.FindProperty("extentX").floatValue = 340f;
+                    so.FindProperty("extentZ").floatValue = 240f;
                 });
             }
 
@@ -964,8 +964,8 @@ namespace Sixty.EditorTools
                 renderers.GetArrayElementAtIndex(1).objectReferenceValue = line.GetComponent<Renderer>();
                 so.FindProperty("openHeight").floatValue = 4.5f;
                 so.FindProperty("animationSpeed").floatValue = 8.2f;
-                so.FindProperty("lockedColor").colorValue = new Color(1f, 0.22f, 0.62f, 1f);
-                so.FindProperty("unlockedColor").colorValue = new Color(0.24f, 1f, 0.92f, 1f);
+                so.FindProperty("lockedColor").colorValue = new Color(1f, 0.35f, 0.08f, 1f);
+                so.FindProperty("unlockedColor").colorValue = new Color(0.1f, 0.95f, 0.88f, 1f);
             });
 
             return door;
@@ -1203,8 +1203,8 @@ namespace Sixty.EditorTools
             cam.transform.position = new Vector3(0f, 26f, -18f);
             cam.transform.rotation = Quaternion.Euler(57f, 26f, 0f);
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.01f, 0.015f, 0.03f);
-            cam.allowHDR = false;
+            cam.backgroundColor = new Color(0.008f, 0.01f, 0.02f);
+            cam.allowHDR = true;
             cam.allowMSAA = false;
             cam.nearClipPlane = 0.15f;
             cam.farClipPlane = 420f;
@@ -1235,58 +1235,86 @@ namespace Sixty.EditorTools
 
         private static void BuildLighting()
         {
-            // Dim directional for overall shape - darker atmosphere
+            // Main directional: warm top-down key light
             GameObject lightGo = new GameObject("Directional Light");
             Light light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 0.55f;
-            light.color = new Color(0.75f, 0.82f, 0.92f);
-            light.shadows = LightShadows.None;
-            lightGo.transform.rotation = Quaternion.Euler(55f, -30f, 0f);
+            light.intensity = 0.7f;
+            light.color = new Color(0.82f, 0.85f, 0.92f);
+            light.shadows = LightShadows.Soft;
+            light.shadowStrength = 0.4f;
+            lightGo.transform.rotation = Quaternion.Euler(60f, -25f, 0f);
 
-            // Cyan fill lights for sci-fi atmosphere
+            // Cyan rim lights: bright edge-lighting on walls and entities
             Vector3[] cyanPositions =
             {
-                new Vector3(26f, 8f, 20f),
-                new Vector3(-26f, 8f, -20f),
-                new Vector3(58f, 8f, 22f),
-                new Vector3(116f, 8f, -22f),
-                new Vector3(200f, 8f, 18f),
-                new Vector3(350f, 8f, -18f)
+                new Vector3(26f, 10f, 24f),
+                new Vector3(-26f, 10f, -24f),
+                new Vector3(58f, 10f, 26f),
+                new Vector3(116f, 10f, -26f),
+                new Vector3(200f, 10f, 22f),
+                new Vector3(350f, 10f, -22f),
+                new Vector3(-10f, 10f, 10f),
+                new Vector3(170f, 10f, 10f)
             };
             for (int i = 0; i < cyanPositions.Length; i++)
             {
                 GameObject fill = new GameObject($"CyanFill_{i + 1:00}");
                 Light fillLight = fill.AddComponent<Light>();
                 fillLight.type = LightType.Point;
-                fillLight.range = 28f;
-                fillLight.intensity = 1.1f;
-                fillLight.color = new Color(0.1f, 0.85f, 0.95f);
+                fillLight.range = 36f;
+                fillLight.intensity = 1.6f;
+                fillLight.color = new Color(0.05f, 0.82f, 0.92f);
                 fillLight.shadows = LightShadows.None;
                 fill.transform.position = cyanPositions[i];
             }
 
-            // Magenta accent lights
-            Vector3[] magentaPositions =
+            // Orange/amber accent lights for warm contrast
+            Vector3[] warmPositions =
             {
-                new Vector3(0f, 6f, -28f),
-                new Vector3(116f, 6f, 28f),
-                new Vector3(290f, 6f, -28f)
+                new Vector3(0f, 5f, -30f),
+                new Vector3(58f, 5f, 30f),
+                new Vector3(116f, 5f, -30f),
+                new Vector3(200f, 5f, 28f),
+                new Vector3(290f, 5f, -28f)
             };
-            for (int i = 0; i < magentaPositions.Length; i++)
+            for (int i = 0; i < warmPositions.Length; i++)
             {
-                GameObject accent = new GameObject($"MagentaAccent_{i + 1:00}");
+                GameObject accent = new GameObject($"WarmAccent_{i + 1:00}");
                 Light accentLight = accent.AddComponent<Light>();
                 accentLight.type = LightType.Point;
-                accentLight.range = 18f;
-                accentLight.intensity = 0.7f;
-                accentLight.color = new Color(1f, 0.15f, 0.6f);
+                accentLight.range = 22f;
+                accentLight.intensity = 0.9f;
+                accentLight.color = new Color(1f, 0.4f, 0.12f);
                 accentLight.shadows = LightShadows.None;
-                accent.transform.position = magentaPositions[i];
+                accent.transform.position = warmPositions[i];
+            }
+
+            // Deep red underglow for danger atmosphere
+            Vector3[] redPositions =
+            {
+                new Vector3(26f, -1f, 0f),
+                new Vector3(116f, -1f, 0f),
+                new Vector3(200f, -1f, 0f)
+            };
+            for (int i = 0; i < redPositions.Length; i++)
+            {
+                GameObject redGlow = new GameObject($"RedUnderglow_{i + 1:00}");
+                Light redLight = redGlow.AddComponent<Light>();
+                redLight.type = LightType.Point;
+                redLight.range = 40f;
+                redLight.intensity = 0.45f;
+                redLight.color = new Color(0.8f, 0.05f, 0.05f);
+                redLight.shadows = LightShadows.None;
+                redGlow.transform.position = redPositions[i];
             }
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.06f, 0.08f, 0.12f);
+            RenderSettings.ambientLight = new Color(0.04f, 0.05f, 0.08f);
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Exponential;
+            RenderSettings.fogDensity = 0.008f;
+            RenderSettings.fogColor = new Color(0.02f, 0.025f, 0.04f);
         }
 
         private static Volume BuildPostProcessingVolume(Transform parent, VolumeProfile profile)
@@ -2327,34 +2355,38 @@ namespace Sixty.EditorTools
                 AssetDatabase.CreateAsset(profile, path);
             }
 
+            // Heavy vignette with reddish tint for danger atmosphere
             Vignette vignette = GetOrCreateVolumeComponent<Vignette>(profile);
             vignette.active = true;
-            vignette.intensity.Override(0.16f);
-            vignette.smoothness.Override(0.72f);
+            vignette.intensity.Override(0.35f);
+            vignette.smoothness.Override(0.55f);
             vignette.rounded.Override(false);
+            vignette.color.Override(new Color(0.6f, 0.05f, 0.05f));
 
             ChromaticAberration chromatic = GetOrCreateVolumeComponent<ChromaticAberration>(profile);
             chromatic.active = true;
-            chromatic.intensity.Override(0.035f);
+            chromatic.intensity.Override(0.06f);
 
             LensDistortion lens = GetOrCreateVolumeComponent<LensDistortion>(profile);
             lens.active = true;
-            lens.intensity.Override(0f);
+            lens.intensity.Override(-0.08f);
             lens.scale.Override(1f);
 
+            // Punchy contrast with slight warmth
             ColorAdjustments colorAdjustments = GetOrCreateVolumeComponent<ColorAdjustments>(profile);
             colorAdjustments.active = true;
-            colorAdjustments.saturation.Override(-6f);
-            colorAdjustments.contrast.Override(18f);
-            colorAdjustments.postExposure.Override(-0.15f);
-            colorAdjustments.colorFilter.Override(new Color(0.95f, 1f, 1f, 1f));
+            colorAdjustments.saturation.Override(8f);
+            colorAdjustments.contrast.Override(28f);
+            colorAdjustments.postExposure.Override(0.1f);
+            colorAdjustments.colorFilter.Override(new Color(0.97f, 0.95f, 0.92f, 1f));
 
+            // Strong bloom for emissive glow on entities and lights
             Bloom bloom = GetOrCreateVolumeComponent<Bloom>(profile);
             bloom.active = true;
-            bloom.intensity.Override(1.8f);
-            bloom.threshold.Override(0.5f);
-            bloom.scatter.Override(0.85f);
-            bloom.tint.Override(new Color(0.55f, 0.92f, 1f, 1f));
+            bloom.intensity.Override(2.8f);
+            bloom.threshold.Override(0.35f);
+            bloom.scatter.Override(0.88f);
+            bloom.tint.Override(new Color(0.6f, 0.88f, 1f, 1f));
 
             Tonemapping tonemapping = GetOrCreateVolumeComponent<Tonemapping>(profile);
             tonemapping.active = true;
@@ -2363,8 +2395,8 @@ namespace Sixty.EditorTools
             FilmGrain filmGrain = GetOrCreateVolumeComponent<FilmGrain>(profile);
             filmGrain.active = true;
             filmGrain.type.Override(FilmGrainLookup.Thin1);
-            filmGrain.intensity.Override(0.2f);
-            filmGrain.response.Override(0.72f);
+            filmGrain.intensity.Override(0.15f);
+            filmGrain.response.Override(0.68f);
 
             profile.name = "VP_GameplayFeel";
             EditorUtility.SetDirty(profile);
@@ -2440,20 +2472,20 @@ namespace Sixty.EditorTools
                 material.shader = crystalShader;
             }
 
-            // Crystal shader properties
+            // Crystal shader properties - stronger glow and emission
             material.SetColor("_BaseColor", color);
-            material.SetColor("_EdgeColor", Color.Lerp(color, Color.white, 0.5f));
+            material.SetColor("_EdgeColor", Color.Lerp(color, Color.white, 0.55f));
             material.SetColor("_EmissionColor", color);
-            material.SetFloat("_EmissionIntensity", 1.5f);
-            material.SetFloat("_FresnelPower", 3.0f);
-            material.SetFloat("_FresnelIntensity", 0.6f);
-            material.SetFloat("_FacetStrength", 0.85f);
-            material.SetFloat("_SpecularPower", 64f);
-            material.SetFloat("_SpecularIntensity", 1.2f);
-            material.SetFloat("_AmbientStrength", 0.25f);
-            material.SetFloat("_CavityWidth", 0.06f);
-            material.SetFloat("_CavityStrength", 0.5f);
-            material.SetColor("_CavityColor", Color.Lerp(color, Color.black, 0.7f));
+            material.SetFloat("_EmissionIntensity", 2.2f);
+            material.SetFloat("_FresnelPower", 2.5f);
+            material.SetFloat("_FresnelIntensity", 0.75f);
+            material.SetFloat("_FacetStrength", 0.9f);
+            material.SetFloat("_SpecularPower", 48f);
+            material.SetFloat("_SpecularIntensity", 1.4f);
+            material.SetFloat("_AmbientStrength", 0.2f);
+            material.SetFloat("_CavityWidth", 0.07f);
+            material.SetFloat("_CavityStrength", 0.6f);
+            material.SetColor("_CavityColor", Color.Lerp(color, Color.black, 0.75f));
 
             EditorUtility.SetDirty(material);
             return material;

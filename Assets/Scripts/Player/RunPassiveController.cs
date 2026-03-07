@@ -90,6 +90,17 @@ namespace Sixty.Player
             };
         }
 
+        public static string GetPassiveDescription(RunPassiveType passiveType)
+        {
+            return passiveType switch
+            {
+                RunPassiveType.Adrenaline => "+20% speed under 10s",
+                RunPassiveType.Overclock => "+30% damage",
+                RunPassiveType.SecondWind => "Kills refresh dash",
+                _ => ""
+            };
+        }
+
         private void ResolveReferences()
         {
             if (playerController == null)

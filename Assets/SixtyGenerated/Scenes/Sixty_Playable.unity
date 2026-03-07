@@ -510,6 +510,7 @@ MonoBehaviour:
   lowTimeThreshold: 10
   pulseDuration: 0.2
   notificationDuration: 2.5
+  maxBulletPips: 8
 --- !u!114 &185709127
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2027,7 +2028,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Sixty.Gameplay.PostProcessFeedback
   volume: {fileID: 540501360}
+  lowTimeRampStart: 45
   lowTimeThreshold: 10
+  lowTimeCurvePower: 2.2
+  maxBaseVignette: 0.18
   lowTimeVignetteBoost: 0.22
   lowTimeSaturationPenalty: 26
   lowTimeSmoothing: 4.5
@@ -2077,7 +2081,7 @@ MonoBehaviour:
   optimizedSurfaceObjectNames:
   - BaseFloor
   - ArenaPlate
-  shootSfx: {fileID: 0}
+  shootSfx: {fileID: 8300000, guid: 3abd99ab11cfdfe42a2f497c42163208, type: 3}
   enemyHitSfx: {fileID: 0}
   enemyKillSfx: {fileID: 0}
   playerHitSfx: {fileID: 0}
