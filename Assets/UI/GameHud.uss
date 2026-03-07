@@ -1,239 +1,376 @@
-/* Sixty - Game HUD Stylesheet */
+/* Sixty - Game HUD */
 
 :root {
-    --cyan: rgb(0, 242, 230);
-    --cyan-dim: rgb(0, 160, 152);
-    --magenta: rgb(255, 72, 180);
-    --gold: rgb(255, 218, 97);
-    --white: rgb(240, 245, 255);
-    --white-dim: rgb(160, 170, 190);
-    --bg-dark: rgba(4, 6, 12, 0.65);
-    --bg-panel: rgba(8, 12, 22, 0.75);
-    --border-subtle: rgba(0, 200, 200, 0.12);
-    --font-mono: resource("Fonts/RobotoMono-Regular");
+    --cyan: rgb(0, 230, 220);
+    --cyan-dim: rgb(0, 140, 135);
+    --cyan-glow: rgba(0, 230, 220, 0.4);
+    --magenta: rgb(255, 62, 170);
+    --magenta-dim: rgb(180, 40, 120);
+    --gold: rgb(255, 210, 80);
+    --gold-dim: rgb(200, 165, 55);
+    --red: rgb(255, 55, 70);
+    --green: rgb(80, 255, 180);
+    --white: rgb(235, 240, 250);
+    --white-dim: rgb(140, 150, 170);
+    --white-faint: rgb(90, 100, 115);
+    --bg-panel: rgba(6, 10, 18, 0.82);
+    --bg-dark: rgba(3, 5, 10, 0.72);
+    --border-cyan: rgba(0, 200, 200, 0.18);
+    --border-gold: rgba(255, 210, 80, 0.2);
 }
 
-/* Root container */
+/* Root */
 .hud-root {
     position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    padding: 20px;
+    left: 0; top: 0; right: 0; bottom: 0;
+    padding: 16px 20px;
     flex-direction: column;
     justify-content: space-between;
 }
 
-/* Top bar */
+/* ===== TOP BAR ===== */
 .top-bar {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
 }
 
-.top-left {
-    flex-direction: column;
-    align-items: flex-start;
-}
+.top-left { align-items: flex-start; }
+.top-right { align-items: flex-end; }
 
 .top-center {
-    flex-direction: column;
-    align-items: center;
     position: absolute;
     left: 50%;
     translate: -50% 0;
+    align-items: center;
 }
 
-.top-right {
-    flex-direction: column;
-    align-items: flex-end;
+/* Info panel (room/enemies) */
+.info-panel {
+    background-color: var(--bg-panel);
+    border-radius: 3px;
+    padding: 10px 16px;
+    border-width: 1px;
+    border-color: var(--border-cyan);
+    min-width: 160px;
 }
 
-/* Timer */
-.timer-container {
+.info-row {
     flex-direction: row;
-    align-items: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
 }
 
-.timer-value {
-    font-size: 64px;
-    color: var(--cyan);
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    text-shadow: 0 0 12px rgba(0, 242, 230, 0.5);
-}
-
-.timer-label {
-    font-size: 14px;
-    color: var(--cyan-dim);
-    margin-bottom: 12px;
-    margin-left: 4px;
+.info-label {
+    font-size: 10px;
+    color: var(--white-faint);
     letter-spacing: 3px;
-    text-transform: upper-case;
 }
 
-.timer-value.pulse-gain {
-    color: rgb(80, 255, 200);
-    scale: 1.08 1.08;
-    transition-duration: 0.15s;
-}
-
-.timer-value.pulse-loss {
-    color: rgb(255, 60, 80);
-    scale: 1.08 1.08;
-    transition-duration: 0.15s;
-}
-
-.timer-value.time-critical {
-    color: rgb(255, 60, 80);
-    text-shadow: 0 0 18px rgba(255, 60, 80, 0.6);
-}
-
-/* Room info */
-.room-label {
-    font-size: 16px;
-    color: var(--white-dim);
-    letter-spacing: 4px;
-    margin-top: 4px;
-}
-
-.room-value {
-    font-size: 28px;
+.info-value {
+    font-size: 18px;
     color: var(--white);
     -unity-font-style: bold;
     letter-spacing: 1px;
 }
 
-/* Enemies */
-.enemies-label {
-    font-size: 13px;
-    color: var(--white-dim);
-    letter-spacing: 3px;
-    margin-top: 2px;
-}
-
-.enemies-value {
-    font-size: 22px;
+.enemies-accent {
     color: var(--magenta);
-    -unity-font-style: bold;
 }
 
-/* Status */
-.status-container {
+/* Room progress bar */
+.progress-track {
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 1px;
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 10%;
+    background-color: var(--cyan);
+    border-radius: 1px;
+    transition-property: width;
+    transition-duration: 0.4s;
+    transition-timing-function: ease-out;
+}
+
+/* ===== TIMER ===== */
+.timer-block {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.timer-frame {
     background-color: var(--bg-panel);
     border-radius: 4px;
-    padding: 8px 16px;
+    padding: 6px 18px 4px 18px;
     border-width: 1px;
-    border-color: var(--border-subtle);
-    margin-top: 6px;
+    border-color: var(--border-cyan);
 }
 
-.status-text {
-    font-size: 15px;
-    color: var(--cyan-dim);
+.timer-value {
+    font-size: 56px;
+    color: var(--cyan);
+    -unity-font-style: bold;
     letter-spacing: 2px;
-    -unity-text-align: middle-center;
+    text-shadow: 0 0 14px var(--cyan-glow);
+    transition-property: color, scale;
+    transition-duration: 0.12s;
 }
 
-.status-text.status-combat {
-    color: rgb(168, 230, 255);
+.timer-unit {
+    font-size: 11px;
+    color: var(--cyan-dim);
+    margin-left: 5px;
+    margin-bottom: 10px;
+    letter-spacing: 4px;
 }
 
-.status-text.status-reward {
-    color: var(--gold);
+/* Timer pulse states */
+.timer-value.pulse-gain {
+    color: var(--green);
+    scale: 1.06 1.06;
 }
 
-.status-text.status-risk {
-    color: var(--magenta);
+.timer-value.pulse-loss {
+    color: var(--red);
+    scale: 1.06 1.06;
 }
 
-.status-text.status-boss {
-    color: rgb(255, 72, 160);
+.timer-value.time-critical {
+    color: var(--red);
+    text-shadow: 0 0 20px rgba(255, 55, 70, 0.55);
 }
 
-.status-text.status-clear {
-    color: rgb(100, 255, 235);
-}
-
-/* Weapon panel */
+/* ===== WEAPON PANEL ===== */
 .weapon-panel {
     background-color: var(--bg-panel);
-    border-radius: 4px;
-    padding: 10px 16px;
+    border-radius: 3px;
+    padding: 10px 14px;
     border-width: 1px;
-    border-color: var(--border-subtle);
+    border-color: var(--border-cyan);
+    min-width: 180px;
 }
 
 .weapon-name {
-    font-size: 18px;
+    font-size: 14px;
     color: var(--cyan);
     -unity-font-style: bold;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
 }
 
-.weapon-stats {
-    font-size: 12px;
+.weapon-stats-grid {
+    flex-direction: column;
+}
+
+.stat-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.stat-label {
+    font-size: 9px;
+    color: var(--white-faint);
+    letter-spacing: 2px;
+    width: 28px;
+    -unity-text-align: middle-left;
+}
+
+.stat-bar-track {
+    flex-grow: 1;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    margin-left: 4px;
+    margin-right: 6px;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    width: 50%;
+    transition-property: width;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out;
+}
+
+.stat-dmg { background-color: rgb(255, 100, 80); }
+.stat-rof { background-color: rgb(80, 200, 255); }
+.stat-spd { background-color: rgb(140, 120, 255); }
+
+.stat-val {
+    font-size: 10px;
     color: var(--white-dim);
-    letter-spacing: 1px;
-    margin-top: 2px;
+    width: 32px;
+    -unity-text-align: middle-right;
 }
 
-.passive-label {
-    font-size: 12px;
+.weapon-extra {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top-width: 1px;
+    border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.weapon-tag {
+    font-size: 10px;
     color: var(--cyan-dim);
     letter-spacing: 1px;
+    -unity-font-style: bold;
+}
+
+.passive-tag {
+    font-size: 9px;
+    color: var(--white-faint);
+    letter-spacing: 1px;
+}
+
+/* ===== NOTIFICATIONS ===== */
+.notification-area {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-container {
+    align-items: center;
+    opacity: 0;
+    scale: 0.95 0.95;
+    transition-property: opacity, scale;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+}
+
+.notification-container.visible {
+    opacity: 1;
+    scale: 1 1;
+}
+
+.notification-text {
+    font-size: 22px;
+    color: var(--white);
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    -unity-text-align: middle-center;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+.notification-sub {
+    font-size: 12px;
+    color: var(--white-dim);
+    letter-spacing: 2px;
+    -unity-text-align: middle-center;
     margin-top: 4px;
 }
 
-/* Bottom bar */
+/* Notification color variants */
+.notification-container.notif-combat .notification-text { color: rgb(160, 220, 255); }
+.notification-container.notif-reward .notification-text { color: var(--gold); }
+.notification-container.notif-risk .notification-text { color: var(--magenta); }
+.notification-container.notif-boss .notification-text { color: rgb(255, 65, 150); }
+.notification-container.notif-clear .notification-text { color: var(--green); }
+.notification-container.notif-timeout .notification-text { color: var(--red); }
+.notification-container.notif-win .notification-text { color: var(--green); }
+
+/* ===== BOTTOM BAR ===== */
 .bottom-bar {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-end;
 }
 
-.bottom-left {
-    flex-direction: column;
-    align-items: flex-start;
+.bottom-left { align-items: flex-start; }
+.bottom-right { align-items: flex-end; }
+
+.meta-text {
+    font-size: 10px;
+    color: var(--white-faint);
+    letter-spacing: 1px;
+    opacity: 0.7;
 }
 
-.bottom-center {
-    flex-direction: column;
+/* ===== DASH PANEL ===== */
+.dash-panel {
+    background-color: var(--bg-panel);
+    border-radius: 3px;
+    padding: 6px 12px;
+    border-width: 1px;
+    border-color: var(--border-cyan);
+    min-width: 80px;
     align-items: center;
-    position: absolute;
-    left: 50%;
-    translate: -50% 0;
-    bottom: 0;
 }
 
-.bottom-right {
-    flex-direction: column;
-    align-items: flex-end;
+.dash-label {
+    font-size: 9px;
+    color: var(--white-faint);
+    letter-spacing: 3px;
+    margin-bottom: 3px;
 }
 
-/* Reward selection */
+.dash-bar-track {
+    width: 100%;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 1px;
+    margin-bottom: 3px;
+}
+
+.dash-bar-fill {
+    height: 100%;
+    width: 100%;
+    background-color: var(--cyan);
+    border-radius: 1px;
+    transition-property: width, background-color;
+    transition-duration: 0.15s;
+}
+
+.dash-bar-fill.on-cooldown {
+    background-color: var(--white-faint);
+}
+
+.dash-status {
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    -unity-font-style: bold;
+}
+
+.dash-status.on-cooldown {
+    color: var(--white-faint);
+}
+
+/* ===== REWARD SELECTION ===== */
 .reward-container {
     background-color: var(--bg-panel);
-    border-radius: 6px;
-    padding: 14px 24px;
+    border-radius: 4px;
+    padding: 14px 28px 16px 28px;
     border-width: 1px;
-    border-color: rgba(255, 218, 97, 0.2);
-    flex-direction: column;
+    border-color: var(--border-gold);
     align-items: center;
     display: none;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.25s;
 }
 
 .reward-container.visible {
     display: flex;
+    opacity: 1;
 }
 
 .reward-title {
-    font-size: 16px;
-    color: var(--gold);
-    letter-spacing: 3px;
+    font-size: 12px;
+    color: var(--gold-dim);
+    letter-spacing: 4px;
     margin-bottom: 10px;
-    -unity-font-style: bold;
 }
 
 .reward-options {
@@ -241,42 +378,28 @@
 }
 
 .reward-option {
-    background-color: rgba(255, 218, 97, 0.06);
-    border-radius: 4px;
-    padding: 8px 18px;
-    margin: 0 6px;
+    background-color: rgba(255, 210, 80, 0.04);
+    border-radius: 3px;
+    padding: 8px 16px;
+    margin: 0 5px;
     border-width: 1px;
-    border-color: rgba(255, 218, 97, 0.15);
+    border-color: rgba(255, 210, 80, 0.12);
+    flex-direction: row;
+    align-items: center;
 }
 
-.reward-option-text {
-    font-size: 14px;
+.reward-key {
+    font-size: 11px;
+    color: var(--gold-dim);
+    -unity-font-style: bold;
+    margin-right: 8px;
+    padding: 2px 6px;
+    background-color: rgba(255, 210, 80, 0.08);
+    border-radius: 2px;
+}
+
+.reward-label {
+    font-size: 12px;
     color: var(--gold);
     letter-spacing: 1px;
-}
-
-.reward-option-key {
-    font-size: 11px;
-    color: var(--white-dim);
-    -unity-text-align: middle-center;
-    margin-top: 2px;
-}
-
-/* Death/meta info */
-.meta-text {
-    font-size: 11px;
-    color: var(--white-dim);
-    letter-spacing: 1px;
-    opacity: 0.7;
-}
-
-/* Screen flash overlay */
-.screen-flash {
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0);
-    display: none;
 }

@@ -52,6 +52,7 @@ namespace Sixty.Gameplay
                 voidCityGenerator.SetCenter(center);
 
                 voidCityGenerator.SetRoomExclusions(roomCenters, arenaBuilder.GridWallHalfExtent);
+                voidCityGenerator.SetCorridorExclusions(arenaBuilder.CorridorMins, arenaBuilder.CorridorMaxs);
                 voidCityGenerator.Generate();
             }
 

@@ -90,6 +90,10 @@ namespace Sixty.Gameplay
             animationSpeed = speed;
             lockedColor = locked;
             unlockedColor = unlocked;
+
+            // Re-initialize with the correct visual transform
+            initialized = false;
+            EnsureInitialized();
         }
 
         public void Open(bool instant = false)

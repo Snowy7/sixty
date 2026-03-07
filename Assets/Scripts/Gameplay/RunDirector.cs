@@ -6,6 +6,7 @@ using Ia.Core.Update;
 using Sixty.Combat;
 using Sixty.Core;
 using Sixty.Player;
+using Sixty.UI;
 using Sixty.World;
 using UnityEngine;
 
@@ -128,6 +129,7 @@ namespace Sixty.Gameplay
             roomsSinceLastReward = 0;
             currentRoomOrigin = ResolveRoomOrigin(1);
             LockAllExitDoors(true);
+            AttachPlayerHealthBar();
             if (runRoutine == null)
             {
                 runRoutine = StartCoroutine(RunLoop());
@@ -347,6 +349,14 @@ namespace Sixty.Gameplay
             health.OnDied += OnEnemyDied;
             aliveEnemies.Add(health);
             RegisterEnemyColliders(health, enemy.GetComponentsInChildren<Collider>(true));
+
+            // Add world-space health bar
+            WorldHealthBar healthBar = enemy.GetComponentInChildren<WorldHealthBar>();
+            if (healthBar == null)
+            {
+                healthBar = enemy.AddComponent<WorldHealthBar>();
+            }
+            healthBar.SetTrackedHealth(health);
         }
 
         private GameObject PickEnemyPrefab(int roomNumber)
@@ -886,24 +896,21 @@ namespace Sixty.Gameplay
                 validDoors[i].OnPlayerEntered -= HandleDoorEntered;
             }
 
-            if (enteringPlayer == null)
-            {
-                enteringPlayer = FindFirstObjectByType<PlayerController>();
-            }
-
-            if (enteredDoor == null && validDoors.Count > 0)
-            {
-                enteredDoor = validDoors[0];
-            }
-
-            if (enteringPlayer != null)
-            {
-                RepositionPlayerForNextRoom(enteringPlayer, enteredDoor);
-            }
-
+            // Close exit doors behind the player instead of teleporting
             for (int i = 0; i < validDoors.Count; i++)
             {
-                validDoors[i].Close(true);
+                validDoors[i].Close(false);
+            }
+
+            // If player didn't walk through a door (timeout), reposition them
+            if (!entered)
+            {
+                if (enteringPlayer == null)
+                    enteringPlayer = FindFirstObjectByType<PlayerController>();
+                if (enteredDoor == null && validDoors.Count > 0)
+                    enteredDoor = validDoors[0];
+                if (enteringPlayer != null)
+                    RepositionPlayerForNextRoom(enteringPlayer, enteredDoor);
             }
 
             yield return new WaitForSeconds(Mathf.Max(0.05f, delayBetweenRooms * 0.25f));
@@ -1046,6 +1053,35 @@ namespace Sixty.Gameplay
             }
 
             return Vector3.zero;
+        }
+
+        private void AttachPlayerHealthBar()
+        {
+            PlayerController player = FindFirstObjectByType<PlayerController>();
+            if (player == null)
+            {
+                return;
+            }
+
+            Health playerHealth = player.GetComponent<Health>();
+            if (playerHealth == null)
+            {
+                playerHealth = player.GetComponentInChildren<Health>();
+            }
+
+            if (playerHealth == null)
+            {
+                return;
+            }
+
+            WorldHealthBar bar = player.GetComponentInChildren<WorldHealthBar>();
+            if (bar == null)
+            {
+                bar = player.gameObject.AddComponent<WorldHealthBar>();
+            }
+
+            bar.SetTrackedHealth(playerHealth);
+            bar.SetIsPlayer(true);
         }
 
         private void RegisterEnemyColliders(Health health, Collider[] colliders)

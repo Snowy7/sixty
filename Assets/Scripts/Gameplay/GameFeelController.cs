@@ -848,39 +848,93 @@ namespace Sixty.Gameplay
 
         private void GenerateFallbackClips()
         {
-            fallbackShootSfx = CreateProceduralClip("FallbackShoot", 0.045f, 850f, 0.18f, 18f, 0.55f);
-            fallbackEnemyHitSfx = CreateProceduralClip("FallbackEnemyHit", 0.05f, 220f, 0.5f, 13f, 0.75f);
-            fallbackEnemyKillSfx = CreateProceduralClip("FallbackEnemyKill", 0.09f, 140f, 0.58f, 9f, 0.8f);
-            fallbackPlayerHitSfx = CreateProceduralClip("FallbackPlayerHit", 0.08f, 170f, 0.66f, 10f, 0.88f);
-            fallbackDashSfx = CreateProceduralClip("FallbackDash", 0.07f, 500f, 0.42f, 12f, 0.65f);
-            fallbackPickupSfx = CreateProceduralClip("FallbackPickup", 0.1f, 980f, 0.1f, 6f, 0.7f);
-            fallbackRoomClearSfx = CreateProceduralClip("FallbackRoomClear", 0.16f, 420f, 0.32f, 5f, 0.72f);
-            fallbackRunWinSfx = CreateProceduralClip("FallbackRunWin", 0.2f, 620f, 0.28f, 4f, 0.8f);
+            // Shoot: sharp digital blip - high freq, fast attack, FM modulation for metallic tone
+            fallbackShootSfx = CreateProceduralClip("FallbackShoot", 0.05f,
+                880f, 1760f, 0.08f, 0.55f, 3.2f, 2200f, 22f);
+
+            // Enemy hit: punchy mid thud with harmonics
+            fallbackEnemyHitSfx = CreateProceduralClip("FallbackEnemyHit", 0.06f,
+                240f, 120f, 0.35f, 0.75f, 1.8f, 480f, 15f);
+
+            // Enemy kill: deeper crunch with noise burst and sub
+            fallbackEnemyKillSfx = CreateProceduralClip("FallbackEnemyKill", 0.11f,
+                160f, 60f, 0.48f, 0.82f, 2.5f, 320f, 10f);
+
+            // Player hit: harsh metallic alarm sweep
+            fallbackPlayerHitSfx = CreateProceduralClip("FallbackPlayerHit", 0.09f,
+                200f, 400f, 0.52f, 0.88f, 4.0f, 600f, 12f);
+
+            // Dash: airy whoosh sweep upward
+            fallbackDashSfx = CreateProceduralClip("FallbackDash", 0.08f,
+                300f, 900f, 0.38f, 0.6f, 1.2f, 1200f, 14f);
+
+            // Pickup: bright ascending chime with harmonics
+            fallbackPickupSfx = CreateProceduralClip("FallbackPickup", 0.14f,
+                660f, 1320f, 0.06f, 0.7f, 2.0f, 1980f, 7f);
+
+            // Room clear: triumphant sweep with rich overtones
+            fallbackRoomClearSfx = CreateProceduralClip("FallbackRoomClear", 0.22f,
+                330f, 660f, 0.15f, 0.72f, 1.5f, 990f, 5f);
+
+            // Run win: ascending chord with reverb tail
+            fallbackRunWinSfx = CreateProceduralClip("FallbackRunWin", 0.35f,
+                440f, 880f, 0.12f, 0.8f, 1.8f, 1320f, 4f);
         }
 
-        private static AudioClip CreateProceduralClip(string clipName, float durationSeconds, float baseFrequency, float noiseMix, float decayPower, float amplitude)
+        private static AudioClip CreateProceduralClip(
+            string clipName, float durationSeconds,
+            float freqStart, float freqEnd,
+            float noiseMix, float amplitude,
+            float fmDepth, float fmFreq, float decayPower)
         {
             int sampleRate = 44100;
-            int sampleCount = Mathf.Max(128, Mathf.CeilToInt(sampleRate * Mathf.Max(0.01f, durationSeconds)));
+            int sampleCount = Mathf.Max(256, Mathf.CeilToInt(sampleRate * Mathf.Max(0.01f, durationSeconds)));
             float[] samples = new float[sampleCount];
             float phase = 0f;
+            float fmPhase = 0f;
 
             float clampedNoiseMix = Mathf.Clamp01(noiseMix);
             float clampedAmplitude = Mathf.Clamp01(amplitude);
             float clampedDecay = Mathf.Max(1f, decayPower);
 
+            // Simple seeded noise for determinism
+            uint noiseSeed = (uint)(clipName.GetHashCode() & 0x7FFFFFFF);
+
             for (int i = 0; i < sampleCount; i++)
             {
-                float t = i / (float)sampleRate;
                 float life = 1f - (i / (float)(sampleCount - 1));
-                float env = Mathf.Pow(life, clampedDecay);
 
-                float freqSweep = baseFrequency * (1f + (0.35f * life));
-                phase += (2f * Mathf.PI * freqSweep) / sampleRate;
+                // Shaped envelope: fast attack, exponential decay
+                float attackT = Mathf.Clamp01(i / (sampleRate * 0.003f)); // 3ms attack
+                float env = attackT * Mathf.Pow(life, clampedDecay);
 
-                float tone = Mathf.Sin(phase);
-                float noise = (Random.value * 2f) - 1f;
-                float sample = Mathf.Lerp(tone, noise, clampedNoiseMix) * env * clampedAmplitude;
+                // Frequency sweep
+                float freq = Mathf.Lerp(freqEnd, freqStart, life);
+
+                // FM synthesis for metallic/digital character
+                float fmEnv = Mathf.Pow(life, clampedDecay * 0.6f);
+                fmPhase += (2f * Mathf.PI * fmFreq) / sampleRate;
+                float fmMod = Mathf.Sin(fmPhase) * fmDepth * fmEnv;
+
+                phase += (2f * Mathf.PI * (freq + fmMod)) / sampleRate;
+
+                // Main tone with 2nd and 3rd harmonics
+                float tone = Mathf.Sin(phase) * 0.6f
+                           + Mathf.Sin(phase * 2f) * 0.25f
+                           + Mathf.Sin(phase * 3f) * 0.15f;
+
+                // Deterministic noise
+                noiseSeed ^= noiseSeed << 13;
+                noiseSeed ^= noiseSeed >> 17;
+                noiseSeed ^= noiseSeed << 5;
+                float noise = ((noiseSeed & 0xFFFF) / 32768f) - 1f;
+
+                float sample = Mathf.Lerp(tone, noise, clampedNoiseMix * life) * env * clampedAmplitude;
+
+                // Soft clip for warmth
+                sample = Mathf.Clamp(sample, -1f, 1f);
+                sample = sample - (sample * sample * sample * 0.15f);
+
                 samples[i] = sample;
             }
 
@@ -940,194 +994,6 @@ namespace Sixty.Gameplay
             image.color = new Color(1f, 0f, 0f, 0f);
 
             return overlayGo.GetComponent<ScreenFlashOverlay>();
-        }
-    }
-
-    public class PostProcessFeedback : IaBehaviour
-    {
-        [Header("References")]
-        [SerializeField] private UnityEngine.Rendering.Volume volume;
-
-        [Header("Low Time")]
-        [SerializeField] private float lowTimeThreshold = 10f;
-        [SerializeField] private float lowTimeVignetteBoost = 0.22f;
-        [SerializeField] private float lowTimeSaturationPenalty = 26f;
-        [SerializeField] private float lowTimeSmoothing = 4.5f;
-
-        [Header("Pulse Decay")]
-        [SerializeField] private float chromaticDecayPerSecond = 2.6f;
-        [SerializeField] private float lensDecayPerSecond = 3.2f;
-        [SerializeField] private float vignetteDecayPerSecond = 3.3f;
-        [SerializeField] private float flashDecayPerSecond = 5.2f;
-
-        private UnityEngine.Rendering.Universal.Vignette vignette;
-        private UnityEngine.Rendering.Universal.ChromaticAberration chromatic;
-        private UnityEngine.Rendering.Universal.LensDistortion lens;
-        private UnityEngine.Rendering.Universal.ColorAdjustments colorAdjustments;
-
-        private float baseVignette;
-        private float baseSaturation;
-        private float baseChromatic;
-        private float baseLens;
-        private Color baseColorFilter = Color.white;
-
-        private float chromaticPulse;
-        private float vignettePulse;
-        private float lensPulse;
-        private float flashStrength;
-        private Color flashColor = Color.white;
-        
-        protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.FX;
-        protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.Update;
-        protected override bool UseOrderedLifecycle => false;
-
-        protected override void OnIaAwake()
-        {
-            ResolveOverrides();
-        }
-
-        public override void OnIaUpdate(float deltaTime)
-        {
-            if (volume == null || vignette == null || chromatic == null || lens == null || colorAdjustments == null)
-            {
-                ResolveOverrides();
-            }
-
-            float lowTimeFactor = 0f;
-            if (Sixty.Core.TimeManager.Instance != null && lowTimeThreshold > 0.01f)
-            {
-                lowTimeFactor = Mathf.Clamp01(1f - (Sixty.Core.TimeManager.Instance.TimeRemaining / lowTimeThreshold));
-            }
-
-            if (vignette != null)
-            {
-                float targetVignette = baseVignette + (lowTimeFactor * lowTimeVignetteBoost) + vignettePulse;
-                vignette.intensity.value = Mathf.Lerp(vignette.intensity.value, Mathf.Clamp01(targetVignette), lowTimeSmoothing * deltaTime);
-            }
-
-            if (colorAdjustments != null)
-            {
-                float targetSaturation = baseSaturation - (lowTimeFactor * lowTimeSaturationPenalty);
-                colorAdjustments.saturation.value = Mathf.Lerp(colorAdjustments.saturation.value, targetSaturation, lowTimeSmoothing * deltaTime);
-                colorAdjustments.colorFilter.value = Color.Lerp(baseColorFilter, flashColor, Mathf.Clamp01(flashStrength));
-            }
-
-            if (chromatic != null)
-            {
-                chromatic.intensity.value = Mathf.Lerp(chromatic.intensity.value, Mathf.Clamp01(baseChromatic + chromaticPulse), lowTimeSmoothing * deltaTime);
-            }
-
-            if (lens != null)
-            {
-                lens.intensity.value = Mathf.Lerp(lens.intensity.value, Mathf.Clamp(baseLens + lensPulse, -1f, 1f), lowTimeSmoothing * deltaTime);
-            }
-
-            chromaticPulse = Mathf.MoveTowards(chromaticPulse, 0f, chromaticDecayPerSecond * deltaTime);
-            vignettePulse = Mathf.MoveTowards(vignettePulse, 0f, vignetteDecayPerSecond * deltaTime);
-            lensPulse = Mathf.MoveTowards(lensPulse, 0f, lensDecayPerSecond * deltaTime);
-            flashStrength = Mathf.MoveTowards(flashStrength, 0f, flashDecayPerSecond * deltaTime);
-        }
-
-        public void OnShot()
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.03f);
-        }
-
-        public void OnEnemyHit(bool killed)
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, killed ? 0.18f : 0.1f);
-            vignettePulse = Mathf.Max(vignettePulse, killed ? 0.08f : 0.04f);
-        }
-
-        public void OnPlayerDamaged()
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.24f);
-            vignettePulse = Mathf.Max(vignettePulse, 0.2f);
-            TriggerFlash(new Color(1f, 0.24f, 0.2f, 1f), 0.55f);
-        }
-
-        public void OnDash()
-        {
-            lensPulse = Mathf.Min(lensPulse, -0.2f);
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.08f);
-        }
-
-        public void OnPickup()
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.06f);
-            vignettePulse = Mathf.Max(vignettePulse, 0.05f);
-            TriggerFlash(new Color(1f, 0.9f, 0.45f, 1f), 0.22f);
-        }
-
-        public void OnRoomClear()
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.12f);
-            vignettePulse = Mathf.Max(vignettePulse, 0.09f);
-            TriggerFlash(new Color(0.68f, 1f, 0.74f, 1f), 0.16f);
-        }
-
-        public void OnRunWin()
-        {
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.28f);
-            vignettePulse = Mathf.Max(vignettePulse, 0.2f);
-            lensPulse = Mathf.Min(lensPulse, -0.18f);
-            TriggerFlash(new Color(0.75f, 1f, 0.82f, 1f), 0.26f);
-        }
-
-        public void OnBossPhaseShift(int phase)
-        {
-            float phaseBoost = Mathf.Clamp(phase, 1, 3) * 0.05f;
-            chromaticPulse = Mathf.Max(chromaticPulse, 0.18f + phaseBoost);
-            vignettePulse = Mathf.Max(vignettePulse, 0.1f + (phaseBoost * 0.75f));
-            lensPulse = Mathf.Min(lensPulse, -0.08f - (phaseBoost * 0.3f));
-            TriggerFlash(
-                phase >= 3 ? new Color(1f, 0.26f, 0.22f, 1f) : new Color(1f, 0.58f, 0.28f, 1f),
-                0.24f + (phaseBoost * 0.5f));
-        }
-
-        private void TriggerFlash(Color color, float intensity)
-        {
-            flashColor = color;
-            flashStrength = Mathf.Max(flashStrength, intensity);
-        }
-
-        private void ResolveOverrides()
-        {
-            if (volume == null)
-            {
-                volume = FindFirstObjectByType<UnityEngine.Rendering.Volume>();
-            }
-
-            if (volume == null || volume.profile == null)
-            {
-                return;
-            }
-
-            volume.profile.TryGet(out vignette);
-            volume.profile.TryGet(out chromatic);
-            volume.profile.TryGet(out lens);
-            volume.profile.TryGet(out colorAdjustments);
-
-            if (vignette != null)
-            {
-                baseVignette = vignette.intensity.value;
-            }
-
-            if (chromatic != null)
-            {
-                baseChromatic = chromatic.intensity.value;
-            }
-
-            if (lens != null)
-            {
-                baseLens = lens.intensity.value;
-            }
-
-            if (colorAdjustments != null)
-            {
-                baseSaturation = colorAdjustments.saturation.value;
-                baseColorFilter = colorAdjustments.colorFilter.value;
-            }
         }
     }
 }

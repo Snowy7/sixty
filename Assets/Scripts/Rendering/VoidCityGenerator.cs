@@ -2,13 +2,14 @@ using UnityEngine;
 
 namespace Sixty.Rendering
 {
+    [ExecuteAlways]
     public class VoidCityGenerator : MonoBehaviour
     {
         [Header("Generation")]
         [SerializeField] private ComputeShader computeShader;
         [SerializeField] private float cellSize = 2.5f;
         [SerializeField] private float baseY = -0.2f;
-        [SerializeField] private int maxInstances = 32768;
+        [SerializeField] private int maxInstances = 65536;
 
         [Header("Bounds")]
         [SerializeField] private float extentX = 300f;
@@ -20,6 +21,9 @@ namespace Sixty.Rendering
         [Header("Rendering")]
         [SerializeField] private Material instanceMaterial;
 
+        [Header("Editor Preview")]
+        [SerializeField] private bool generateInEditor = true;
+
         private ComputeBuffer instanceBuffer;
         private ComputeBuffer counterBuffer;
         private ComputeBuffer argsBuffer;
@@ -30,6 +34,11 @@ namespace Sixty.Rendering
         // Room data for exclusion zones
         private Vector4[] roomCenters;
         private int roomCount;
+
+        // Corridor exclusion zones
+        private Vector4[] corridorMins;
+        private Vector4[] corridorMaxs;
+        private int corridorCount;
 
         public void SetRoomExclusions(Vector3[] centers, float halfExtent)
         {
@@ -45,6 +54,23 @@ namespace Sixty.Rendering
             }
         }
 
+        public void SetCorridorExclusions(Vector3[] mins, Vector3[] maxs)
+        {
+            corridorCount = Mathf.Min(mins.Length, 16);
+            corridorMins = new Vector4[16];
+            corridorMaxs = new Vector4[16];
+            for (int i = 0; i < corridorCount; i++)
+            {
+                corridorMins[i] = new Vector4(mins[i].x, mins[i].y, mins[i].z, 0f);
+                corridorMaxs[i] = new Vector4(maxs[i].x, maxs[i].y, maxs[i].z, 0f);
+            }
+            for (int i = corridorCount; i < 16; i++)
+            {
+                corridorMins[i] = new Vector4(-99999f, -99999f, -99999f, 0f);
+                corridorMaxs[i] = new Vector4(-99999f, -99999f, -99999f, 0f);
+            }
+        }
+
         public void Generate()
         {
             if (computeShader == null || instanceMaterial == null)
@@ -53,20 +79,78 @@ namespace Sixty.Rendering
                 return;
             }
 
+            instanceMaterial.enableInstancing = true;
+
             CreateCubeMesh();
             AllocateBuffers();
             DispatchCompute();
             ReadBackCount();
+
+            if (instanceCount <= 0)
+            {
+                Debug.LogWarning($"VoidCityGenerator: Compute produced 0 instances.");
+                return;
+            }
+
             SetupIndirectArgs();
             isReady = true;
         }
+
+        private void OnEnable()
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying && generateInEditor)
+            {
+                GenerateEditorPreview();
+            }
+#endif
+        }
+
+        private void OnDisable()
+        {
+            ReleaseBuffers();
+            isReady = false;
+        }
+
+#if UNITY_EDITOR
+        private void GenerateEditorPreview()
+        {
+            if (computeShader == null || instanceMaterial == null)
+                return;
+
+            // Use default exclusions if none set
+            if (roomCenters == null)
+            {
+                roomCount = 0;
+                roomCenters = new Vector4[16];
+                for (int i = 0; i < 16; i++)
+                    roomCenters[i] = new Vector4(-99999f, 0f, -99999f, 0f);
+            }
+            if (corridorMins == null)
+            {
+                corridorCount = 0;
+                corridorMins = new Vector4[16];
+                corridorMaxs = new Vector4[16];
+                for (int i = 0; i < 16; i++)
+                {
+                    corridorMins[i] = new Vector4(-99999f, -99999f, -99999f, 0f);
+                    corridorMaxs[i] = new Vector4(-99999f, -99999f, -99999f, 0f);
+                }
+            }
+
+            Generate();
+        }
+#endif
 
         private void CreateCubeMesh()
         {
             if (cubeMesh != null) return;
             GameObject temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cubeMesh = temp.GetComponent<MeshFilter>().sharedMesh;
-            Destroy(temp);
+            if (Application.isPlaying)
+                Destroy(temp);
+            else
+                DestroyImmediate(temp);
         }
 
         private void AllocateBuffers()
@@ -104,6 +188,13 @@ namespace Sixty.Rendering
             if (roomCenters != null)
             {
                 computeShader.SetVectorArray("_RoomCenters", roomCenters);
+            }
+
+            computeShader.SetInt("_CorridorCount", corridorCount);
+            if (corridorMins != null)
+            {
+                computeShader.SetVectorArray("_CorridorMins", corridorMins);
+                computeShader.SetVectorArray("_CorridorMaxs", corridorMaxs);
             }
 
             int groupsX = Mathf.CeilToInt(gridX / 8f);

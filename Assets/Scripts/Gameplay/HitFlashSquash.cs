@@ -35,6 +35,7 @@ namespace Sixty.Gameplay
             public bool hasColor;
             public bool hasTintColor;
             public bool hasEmissionColor;
+            public bool hasCrystalFlash;
             public Color baseColor;
             public Color baseEmissionColor;
         }
@@ -86,6 +87,7 @@ namespace Sixty.Gameplay
                     hasColor = hasColor,
                     hasTintColor = hasTintColor,
                     hasEmissionColor = hasEmissionColor,
+                    hasCrystalFlash = mat.HasProperty("_UseFlashColor"),
                     baseColor = baseColor,
                     baseEmissionColor = baseEmissionColor
                 };
@@ -184,8 +186,17 @@ namespace Sixty.Gameplay
                     continue;
                 }
 
-                Color intensifiedFlash = flashColor * Mathf.Max(1f, activeColorIntensity);
-                Color color = Color.Lerp(snapshot.baseColor, intensifiedFlash, alpha);
+                // Crystal shader: use built-in flash support
+                if (snapshot.hasCrystalFlash)
+                {
+                    snapshot.material.SetFloat("_UseFlashColor", alpha > 0.01f ? 1f : 0f);
+                    Color intensifiedFlash = flashColor * Mathf.Max(1f, activeColorIntensity);
+                    snapshot.material.SetColor("_FlashColor", Color.Lerp(snapshot.baseColor, intensifiedFlash, alpha));
+                    continue;
+                }
+
+                Color standardFlash = flashColor * Mathf.Max(1f, activeColorIntensity);
+                Color color = Color.Lerp(snapshot.baseColor, standardFlash, alpha);
                 if (snapshot.hasBaseColor)
                 {
                     snapshot.material.SetColor("_BaseColor", color);

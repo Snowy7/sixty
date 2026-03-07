@@ -24,10 +24,12 @@ namespace Sixty.World
         [SerializeField] private Material accentMaterial;
         [SerializeField] private Material guideMaterial;
 
-        [Header("Wall Detail")]
-        [SerializeField] private int wallDetailDensity = 8;
-        [SerializeField] private float wallDetailMinScale = 0.4f;
-        [SerializeField] private float wallDetailMaxScale = 1.8f;
+        [Header("Wall Cluster")]
+        [SerializeField] private int wallClusterDensity = 14;
+        [SerializeField] private float clusterMinWidth = 0.5f;
+        [SerializeField] private float clusterMaxWidth = 2.2f;
+        [SerializeField] private float clusterMinHeight = 0.4f;
+        [SerializeField] private float clusterMaxHeight = 3.6f;
 
         private Transform roomRoot;
         private Transform corridorRoot;
@@ -37,6 +39,8 @@ namespace Sixty.World
         private List<RunExitDoor> generatedDoors = new List<RunExitDoor>();
         private List<Renderer> generatedGroundRenderers = new List<Renderer>();
         private Transform[] generatedRoomAnchors;
+        private List<Vector3> corridorBoundsMins = new List<Vector3>();
+        private List<Vector3> corridorBoundsMaxs = new List<Vector3>();
 
         private Vector2Int[] gridPositions;
         private int[] connectionDirs; // 0=N, 1=S, 2=E, 3=W
@@ -48,6 +52,8 @@ namespace Sixty.World
         public int GridRoomCount => roomCount;
         public float GridRoomSpacing => roomSpacing;
         public float GridWallHalfExtent => wallHalfExtent;
+        public Vector3[] CorridorMins => corridorBoundsMins.ToArray();
+        public Vector3[] CorridorMaxs => corridorBoundsMaxs.ToArray();
 
         private static readonly Vector3[] SpawnTemplatePositions =
         {
@@ -81,6 +87,8 @@ namespace Sixty.World
             generatedRoomAnchors = new Transform[roomCount];
             generatedDoors.Clear();
             generatedGroundRenderers.Clear();
+            corridorBoundsMins.Clear();
+            corridorBoundsMaxs.Clear();
 
             GenerateLayout();
 
@@ -229,50 +237,34 @@ namespace Sixty.World
                 $"RoomFloorTrim_{roomIndex + 1:00}", false, true);
         }
 
-        // --- Walls ---
+        // --- Clustered Walls ---
 
         private void BuildRoomWalls(Vector3 center, int roomIndex, bool openN, bool openS, bool openE, bool openW, System.Random rng)
         {
-            float he = wallHalfExtent;
-            float h = wallHeight;
-            float t = wallThickness;
-            float span = he * 2f;
             Material baseMat = wallMaterial;
             Material faceMat = wallFaceMaterial != null ? wallFaceMaterial : trimMaterial;
 
-            // North wall
-            if (openN)
-                BuildOpeningWall(center, 0, roomIndex, baseMat, faceMat, rng);
-            else
-                BuildSolidWall(center, 0, roomIndex, baseMat, faceMat, rng);
+            if (!openN) BuildClusteredWallSolid(center, 0, roomIndex, baseMat, faceMat, rng);
+            else BuildClusteredWallOpening(center, 0, roomIndex, baseMat, faceMat, rng);
 
-            // South wall
-            if (openS)
-                BuildOpeningWall(center, 1, roomIndex, baseMat, faceMat, rng);
-            else
-                BuildSolidWall(center, 1, roomIndex, baseMat, faceMat, rng);
+            if (!openS) BuildClusteredWallSolid(center, 1, roomIndex, baseMat, faceMat, rng);
+            else BuildClusteredWallOpening(center, 1, roomIndex, baseMat, faceMat, rng);
 
-            // East wall
-            if (openE)
-                BuildOpeningWall(center, 2, roomIndex, baseMat, faceMat, rng);
-            else
-                BuildSolidWall(center, 2, roomIndex, baseMat, faceMat, rng);
+            if (!openE) BuildClusteredWallSolid(center, 2, roomIndex, baseMat, faceMat, rng);
+            else BuildClusteredWallOpening(center, 2, roomIndex, baseMat, faceMat, rng);
 
-            // West wall
-            if (openW)
-                BuildOpeningWall(center, 3, roomIndex, baseMat, faceMat, rng);
-            else
-                BuildSolidWall(center, 3, roomIndex, baseMat, faceMat, rng);
+            if (!openW) BuildClusteredWallSolid(center, 3, roomIndex, baseMat, faceMat, rng);
+            else BuildClusteredWallOpening(center, 3, roomIndex, baseMat, faceMat, rng);
 
-            // Corner pillars
-            float cp = he - 1.5f;
-            BuildCornerPillar(center, cp, cp, roomIndex, "NE", faceMat, baseMat, rng);
-            BuildCornerPillar(center, -cp, cp, roomIndex, "NW", faceMat, baseMat, rng);
-            BuildCornerPillar(center, cp, -cp, roomIndex, "SE", faceMat, baseMat, rng);
-            BuildCornerPillar(center, -cp, -cp, roomIndex, "SW", faceMat, baseMat, rng);
+            // Corner clusters
+            float cp = wallHalfExtent - 0.5f;
+            BuildCornerCluster(center, cp, cp, roomIndex, "NE", baseMat, faceMat, rng);
+            BuildCornerCluster(center, -cp, cp, roomIndex, "NW", baseMat, faceMat, rng);
+            BuildCornerCluster(center, cp, -cp, roomIndex, "SE", baseMat, faceMat, rng);
+            BuildCornerCluster(center, -cp, -cp, roomIndex, "SW", baseMat, faceMat, rng);
         }
 
-        private void BuildSolidWall(Vector3 center, int side, int roomIndex, Material baseMat, Material faceMat, System.Random rng)
+        private void BuildClusteredWallSolid(Vector3 center, int side, int roomIndex, Material baseMat, Material faceMat, System.Random rng)
         {
             float he = wallHalfExtent;
             float h = wallHeight;
@@ -280,38 +272,22 @@ namespace Sixty.World
             float span = he * 2f;
             string prefix = $"Wall_{SideName(side)}_{roomIndex}";
 
-            GetWallTransform(center, side, he, out Vector3 basePos, out Vector3 baseScale, out Vector3 faceOffset, out bool isHorizontal);
+            GetWallEdgePosition(center, side, he, out float wallX, out float wallZ, out bool isHorizontal);
 
-            // Dark base slab (full thickness)
-            basePos.y = h * 0.5f;
-            baseScale.y = h;
-            CreateBlock(roomRoot, baseMat, basePos, baseScale, $"{prefix}_Base", true, false);
-
-            // Lighter face overlay (thinner, on interior side)
-            Vector3 facePos = basePos + faceOffset;
-            Vector3 faceScale = baseScale;
+            // Thin collision base slab
             if (isHorizontal)
-            {
-                faceScale.z = t * 0.4f;
-                faceScale.x -= 0.4f;
-            }
+                CreateBlock(roomRoot, baseMat, new Vector3(center.x, h * 0.5f, wallZ), new Vector3(span, h, t * 0.6f), $"{prefix}_CollBase", true, false);
             else
-            {
-                faceScale.x = t * 0.4f;
-                faceScale.z -= 0.4f;
-            }
-            faceScale.y = h * 0.88f;
-            facePos.y = faceScale.y * 0.5f;
-            CreateBlock(detailRoot, faceMat, facePos, faceScale, $"{prefix}_Face", false, false);
+                CreateBlock(roomRoot, baseMat, new Vector3(wallX, h * 0.5f, center.z), new Vector3(t * 0.6f, h, span), $"{prefix}_CollBase", true, false);
+
+            // Cube clusters along the wall
+            SpawnWallCubeCluster(center, side, roomIndex, baseMat, faceMat, rng, span, 0f, span);
 
             // Stepped base ledge
             BuildWallBaseLedge(center, side, roomIndex, span, faceMat, baseMat);
-
-            // Detail blocks
-            BuildWallDetails(center, side, roomIndex, span, h, t, he, faceMat, baseMat, rng);
         }
 
-        private void BuildOpeningWall(Vector3 center, int side, int roomIndex, Material baseMat, Material faceMat, System.Random rng)
+        private void BuildClusteredWallOpening(Vector3 center, int side, int roomIndex, Material baseMat, Material faceMat, System.Random rng)
         {
             float he = wallHalfExtent;
             float h = wallHeight;
@@ -324,31 +300,125 @@ namespace Sixty.World
 
             GetWallEdgePosition(center, side, he, out float wallX, out float wallZ, out bool isHorizontal);
 
-            if (isHorizontal) // N or S
+            // Collision slabs for each segment
+            if (isHorizontal)
             {
-                float inward = (side == 0) ? -t * 0.2f : t * 0.2f;
-                // Left segment
-                CreateBlock(roomRoot, baseMat, new Vector3(center.x - segOff, h * 0.5f, wallZ), new Vector3(segLen, h, t), $"{prefix}_L_Base", true, false);
-                CreateBlock(detailRoot, faceMat, new Vector3(center.x - segOff, h * 0.44f, wallZ + inward), new Vector3(segLen - 0.3f, h * 0.88f, t * 0.4f), $"{prefix}_L_Face", false, false);
-                // Right segment
-                CreateBlock(roomRoot, baseMat, new Vector3(center.x + segOff, h * 0.5f, wallZ), new Vector3(segLen, h, t), $"{prefix}_R_Base", true, false);
-                CreateBlock(detailRoot, faceMat, new Vector3(center.x + segOff, h * 0.44f, wallZ + inward), new Vector3(segLen - 0.3f, h * 0.88f, t * 0.4f), $"{prefix}_R_Face", false, false);
-                // Header
+                CreateBlock(roomRoot, baseMat, new Vector3(center.x - segOff, h * 0.5f, wallZ), new Vector3(segLen, h, t * 0.6f), $"{prefix}_L_Base", true, false);
+                CreateBlock(roomRoot, baseMat, new Vector3(center.x + segOff, h * 0.5f, wallZ), new Vector3(segLen, h, t * 0.6f), $"{prefix}_R_Base", true, false);
                 CreateBlock(roomRoot, baseMat, new Vector3(center.x, h - 0.3f, wallZ), new Vector3(opening + 1.2f, 0.6f, t + 0.2f), $"{prefix}_Header", true, false);
             }
-            else // E or W
+            else
             {
-                float inward = (side == 2) ? -t * 0.2f : t * 0.2f;
-                CreateBlock(roomRoot, baseMat, new Vector3(wallX, h * 0.5f, center.z + segOff), new Vector3(t, h, segLen), $"{prefix}_L_Base", true, false);
-                CreateBlock(detailRoot, faceMat, new Vector3(wallX + inward, h * 0.44f, center.z + segOff), new Vector3(t * 0.4f, h * 0.88f, segLen - 0.3f), $"{prefix}_L_Face", false, false);
-                CreateBlock(roomRoot, baseMat, new Vector3(wallX, h * 0.5f, center.z - segOff), new Vector3(t, h, segLen), $"{prefix}_R_Base", true, false);
-                CreateBlock(detailRoot, faceMat, new Vector3(wallX + inward, h * 0.44f, center.z - segOff), new Vector3(t * 0.4f, h * 0.88f, segLen - 0.3f), $"{prefix}_R_Face", false, false);
+                CreateBlock(roomRoot, baseMat, new Vector3(wallX, h * 0.5f, center.z + segOff), new Vector3(t * 0.6f, h, segLen), $"{prefix}_L_Base", true, false);
+                CreateBlock(roomRoot, baseMat, new Vector3(wallX, h * 0.5f, center.z - segOff), new Vector3(t * 0.6f, h, segLen), $"{prefix}_R_Base", true, false);
                 CreateBlock(roomRoot, baseMat, new Vector3(wallX, h - 0.3f, center.z), new Vector3(t + 0.2f, 0.6f, opening + 1.2f), $"{prefix}_Header", true, false);
             }
 
-            // Partial ledge and details for opening walls
+            // Cluster cubes on each segment (avoiding the opening)
+            SpawnWallCubeCluster(center, side, roomIndex, baseMat, faceMat, rng, segLen, -segOff, segLen);
+            SpawnWallCubeCluster(center, side, roomIndex, baseMat, faceMat, rng, segLen, segOff, segLen);
+
+            // Door frame cubes around opening
+            for (int f = 0; f < 4; f++)
+            {
+                float frameH = 0.8f + (float)rng.NextDouble() * (h - 1.2f);
+                float frameW = 0.4f + (float)rng.NextDouble() * 0.8f;
+                float frameD = t * (0.6f + (float)rng.NextDouble() * 0.6f);
+                float frameSide = (f < 2) ? -(opening * 0.5f + frameW * 0.3f) : (opening * 0.5f + frameW * 0.3f);
+                float frameY = (f % 2 == 0) ? frameH * 0.5f : h - frameH * 0.5f;
+                Material mat = rng.NextDouble() > 0.4 ? faceMat : baseMat;
+
+                if (isHorizontal)
+                    CreateBlock(detailRoot, mat, new Vector3(center.x + frameSide, frameY, wallZ), new Vector3(frameW, frameH, frameD), $"WCF_{roomIndex}_{side}_{f}", false, false);
+                else
+                    CreateBlock(detailRoot, mat, new Vector3(wallX, frameY, center.z + frameSide), new Vector3(frameD, frameH, frameW), $"WCF_{roomIndex}_{side}_{f}", false, false);
+            }
+
             BuildWallBaseLedge(center, side, roomIndex, span, faceMat, baseMat);
-            BuildWallDetails(center, side, roomIndex, span, h, t, he, faceMat, baseMat, rng);
+        }
+
+        private void SpawnWallCubeCluster(Vector3 center, int side, int roomIndex, Material baseMat, Material faceMat, System.Random rng, float segLen, float segOffset, float clampLen)
+        {
+            float h = wallHeight;
+            float t = wallThickness;
+            float inward = GetInwardSign(side);
+            GetWallEdgePosition(center, side, wallHalfExtent, out float wallX, out float wallZ, out bool isHorizontal);
+            int count = Mathf.Max(4, wallClusterDensity * (int)(segLen / (wallHalfExtent * 2f) + 0.5f));
+
+            for (int d = 0; d < count; d++)
+            {
+                float along = segOffset + ((float)rng.NextDouble() - 0.5f) * (segLen - 1f);
+                float cubeW = clusterMinWidth + (float)rng.NextDouble() * (clusterMaxWidth - clusterMinWidth);
+                float cubeH = clusterMinHeight + (float)rng.NextDouble() * (clusterMaxHeight - clusterMinHeight);
+                float cubeD = 0.4f + (float)rng.NextDouble() * (t * 1.5f);
+
+                // Stack: some on ground, some elevated
+                float baseY = (rng.NextDouble() > 0.5) ? (float)rng.NextDouble() * (h - cubeH) : 0f;
+                float depthJitter = ((float)rng.NextDouble() - 0.3f) * t * 1.2f;
+                Material mat = rng.NextDouble() > 0.55 ? faceMat : baseMat;
+
+                if (isHorizontal)
+                {
+                    CreateBlock(detailRoot, mat,
+                        new Vector3(center.x + along, baseY + cubeH * 0.5f, wallZ + depthJitter * inward),
+                        new Vector3(cubeW, cubeH, cubeD),
+                        $"WC_{roomIndex}_{side}_{d}", false, false);
+                }
+                else
+                {
+                    CreateBlock(detailRoot, mat,
+                        new Vector3(wallX + depthJitter * inward, baseY + cubeH * 0.5f, center.z + along),
+                        new Vector3(cubeD, cubeH, cubeW),
+                        $"WC_{roomIndex}_{side}_{d}", false, false);
+                }
+
+                // Secondary stacked block
+                if (rng.NextDouble() > 0.4)
+                {
+                    float secW = cubeW * (0.4f + (float)rng.NextDouble() * 0.5f);
+                    float secH = cubeH * (0.3f + (float)rng.NextDouble() * 0.6f);
+                    float secD = cubeD * (0.5f + (float)rng.NextDouble() * 0.4f);
+                    float secY = baseY + cubeH + secH * 0.5f;
+                    Material secMat = rng.NextDouble() > 0.5 ? faceMat : baseMat;
+
+                    if (isHorizontal)
+                    {
+                        CreateBlock(detailRoot, secMat,
+                            new Vector3(center.x + along + ((float)rng.NextDouble() - 0.5f) * cubeW * 0.4f, secY, wallZ + depthJitter * inward),
+                            new Vector3(secW, secH, secD),
+                            $"WC2_{roomIndex}_{side}_{d}", false, false);
+                    }
+                    else
+                    {
+                        CreateBlock(detailRoot, secMat,
+                            new Vector3(wallX + depthJitter * inward, secY, center.z + along + ((float)rng.NextDouble() - 0.5f) * cubeW * 0.4f),
+                            new Vector3(secD, secH, secW),
+                            $"WC2_{roomIndex}_{side}_{d}", false, false);
+                    }
+                }
+            }
+        }
+
+        private void BuildCornerCluster(Vector3 center, float offsetX, float offsetZ, int roomIndex, string label, Material baseMat, Material faceMat, System.Random rng)
+        {
+            float h = wallHeight;
+            int count = 4 + (int)(rng.NextDouble() * 4);
+
+            for (int i = 0; i < count; i++)
+            {
+                float cubeW = 0.6f + (float)rng.NextDouble() * 1.4f;
+                float cubeH = 0.5f + (float)rng.NextDouble() * (h + 0.8f);
+                float cubeD = 0.6f + (float)rng.NextDouble() * 1.4f;
+                float jitterX = ((float)rng.NextDouble() - 0.5f) * 3f;
+                float jitterZ = ((float)rng.NextDouble() - 0.5f) * 3f;
+                float baseY = (rng.NextDouble() > 0.6) ? (float)rng.NextDouble() * 1.5f : 0f;
+                Material mat = rng.NextDouble() > 0.5 ? faceMat : baseMat;
+
+                CreateBlock(detailRoot, mat,
+                    center + new Vector3(offsetX + jitterX, baseY + cubeH * 0.5f, offsetZ + jitterZ),
+                    new Vector3(cubeW, cubeH, cubeD),
+                    $"CC_{roomIndex}_{label}_{i}", false, false);
+            }
         }
 
         private void BuildWallBaseLedge(Vector3 center, int side, int roomIndex, float span, Material faceMat, Material baseMat)
@@ -379,57 +449,6 @@ namespace Sixty.World
                         $"WallStep_{SideName(side)}_{roomIndex}_{step}", false, false);
                 }
             }
-        }
-
-        private void BuildWallDetails(Vector3 center, int side, int roomIndex, float span, float h, float t, float he, Material faceMat, Material baseMat, System.Random rng)
-        {
-            int count = wallDetailDensity;
-            GetWallEdgePosition(center, side, he, out float wallX, out float wallZ, out bool isHorizontal);
-            float inwardSign = GetInwardSign(side);
-
-            for (int d = 0; d < count; d++)
-            {
-                float along = ((float)rng.NextDouble() - 0.5f) * (span - 4f);
-                float w = wallDetailMinScale + (float)rng.NextDouble() * (wallDetailMaxScale - wallDetailMinScale);
-                float detailH = 0.6f + (float)rng.NextDouble() * (h - 0.4f);
-                float depth = 0.3f + (float)rng.NextDouble() * 1.2f;
-
-                bool outside = rng.NextDouble() > 0.6;
-                float depthOffset = (outside ? -depth * 0.4f : depth * 0.4f) * inwardSign;
-
-                Material mat = rng.NextDouble() > 0.65 ? faceMat : baseMat;
-
-                if (isHorizontal)
-                {
-                    Vector3 pos = new Vector3(center.x + along, detailH * 0.5f, wallZ + depthOffset);
-                    CreateBlock(detailRoot, mat, pos, new Vector3(w, detailH, depth), $"WD_{roomIndex}_{side}_{d}", false, false);
-                }
-                else
-                {
-                    Vector3 pos = new Vector3(wallX + depthOffset, detailH * 0.5f, center.z + along);
-                    CreateBlock(detailRoot, mat, pos, new Vector3(depth, detailH, w), $"WD_{roomIndex}_{side}_{d}", false, false);
-                }
-            }
-        }
-
-        private void BuildCornerPillar(Vector3 center, float offsetX, float offsetZ, int roomIndex, string label, Material faceMat, Material baseMat, System.Random rng)
-        {
-            float h = wallHeight;
-            float baseH = 0.8f + (float)rng.NextDouble() * 1.8f;
-            float pillarW = 1.2f + (float)rng.NextDouble() * 0.6f;
-
-            // Dark base
-            CreateBlock(detailRoot, baseMat,
-                center + new Vector3(offsetX, baseH * 0.5f, offsetZ),
-                new Vector3(pillarW + 0.3f, baseH, pillarW + 0.3f),
-                $"Corner_{roomIndex}_{label}_Base", false, false);
-
-            // Lighter cap
-            float capH = 0.4f + (float)rng.NextDouble() * 0.6f;
-            CreateBlock(detailRoot, faceMat,
-                center + new Vector3(offsetX, baseH + capH * 0.5f, offsetZ),
-                new Vector3(pillarW, capH, pillarW),
-                $"Corner_{roomIndex}_{label}_Cap", false, false);
         }
 
         // --- Guide Lines ---
@@ -480,6 +499,11 @@ namespace Sixty.World
 
             CreateBlock(corridorRoot, wallMaterial, wallNPos, wallScale, $"{label}_WallA", true, false);
             CreateBlock(corridorRoot, wallMaterial, wallSPos, wallScale, $"{label}_WallB", true, false);
+
+            // Track corridor bounds for void exclusion
+            Vector3 halfFloor = floorScale * 0.5f;
+            corridorBoundsMins.Add(center - halfFloor);
+            corridorBoundsMaxs.Add(center + halfFloor);
         }
 
         // --- Exit Gates ---
@@ -533,10 +557,11 @@ namespace Sixty.World
 
             GameObject trigger = new GameObject("EntryTrigger");
             trigger.transform.SetParent(root.transform, false);
-            trigger.transform.localPosition = new Vector3(0f, 1.2f, -1.25f);
+            // Place trigger well into the corridor so the player is fully past the gate
+            trigger.transform.localPosition = new Vector3(0f, 1.2f, 6.0f);
             BoxCollider triggerCollider = trigger.AddComponent<BoxCollider>();
             triggerCollider.isTrigger = true;
-            triggerCollider.size = new Vector3(doorOpeningWidth + 1.2f, 2.5f, 2.7f);
+            triggerCollider.size = new Vector3(doorOpeningWidth + 1.2f, 2.5f, 3.0f);
 
             RunExitDoor door = trigger.AddComponent<RunExitDoor>();
             door.SetRuntimeRefs(
@@ -572,11 +597,21 @@ namespace Sixty.World
 
         // --- Helpers ---
 
+        private static readonly HashSet<string> OwnedChildNames = new HashSet<string>
+        {
+            "Rooms", "Corridors", "Gates", "Details", "SpawnPoints"
+        };
+
         private void ClearExisting()
         {
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
-                Destroy(transform.GetChild(i).gameObject);
+                GameObject child = transform.GetChild(i).gameObject;
+                // Only destroy children created by the arena builder, not siblings like VoidCityGenerator
+                if (OwnedChildNames.Contains(child.name) || child.name.StartsWith("RoomAnchor_"))
+                {
+                    Destroy(child);
+                }
             }
         }
 
@@ -590,37 +625,6 @@ namespace Sixty.World
         private static string SideName(int side)
         {
             return side switch { 0 => "N", 1 => "S", 2 => "E", _ => "W" };
-        }
-
-        private void GetWallTransform(Vector3 center, int side, float he, out Vector3 pos, out Vector3 scale, out Vector3 faceOffset, out bool isHorizontal)
-        {
-            float t = wallThickness;
-            float span = he * 2f;
-            isHorizontal = (side == 0 || side == 1);
-
-            switch (side)
-            {
-                case 0: // North
-                    pos = new Vector3(center.x, 0f, center.z + he);
-                    scale = new Vector3(span, 0f, t);
-                    faceOffset = new Vector3(0f, 0f, -t * 0.2f);
-                    break;
-                case 1: // South
-                    pos = new Vector3(center.x, 0f, center.z - he);
-                    scale = new Vector3(span, 0f, t);
-                    faceOffset = new Vector3(0f, 0f, t * 0.2f);
-                    break;
-                case 2: // East
-                    pos = new Vector3(center.x + he, 0f, center.z);
-                    scale = new Vector3(t, 0f, span);
-                    faceOffset = new Vector3(-t * 0.2f, 0f, 0f);
-                    break;
-                default: // West
-                    pos = new Vector3(center.x - he, 0f, center.z);
-                    scale = new Vector3(t, 0f, span);
-                    faceOffset = new Vector3(t * 0.2f, 0f, 0f);
-                    break;
-            }
         }
 
         private void GetWallEdgePosition(Vector3 center, int side, float he, out float wallX, out float wallZ, out bool isHorizontal)

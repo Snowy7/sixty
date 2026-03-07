@@ -146,6 +146,124 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+--- !u!114 &-7208684132149000951
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fa6114a5bcc44ff9d6d2d41ea92b0d3, type: 3}
+  m_Name: VolumetricFogVolumeComponent
+  m_EditorClassIdentifier: Assembly-CSharp-firstpass::VolumetricFogVolumeComponent
+  active: 1
+  enabled:
+    m_OverrideState: 1
+    m_Value: 0
+  density:
+    m_OverrideState: 1
+    m_Value: 0.02
+  baseHeight:
+    m_OverrideState: 1
+    m_Value: 0
+  maxHeight:
+    m_OverrideState: 1
+    m_Value: 50
+  heightFalloff:
+    m_OverrideState: 1
+    m_Value: 0.2
+  albedo:
+    m_OverrideState: 1
+    m_Value: {r: 0.9, g: 0.9, b: 1, a: 1}
+  ambientLight:
+    m_OverrideState: 1
+    m_Value: {r: 0.05, g: 0.05, b: 0.08, a: 1}
+  anisotropy:
+    m_OverrideState: 1
+    m_Value: 0.7
+  scatteringIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  extinction:
+    m_OverrideState: 1
+    m_Value: 0.02
+  distanceFade:
+    m_OverrideState: 1
+    m_Value: 1
+  distanceFadeStart:
+    m_OverrideState: 1
+    m_Value: 60
+  distanceFadeEnd:
+    m_OverrideState: 1
+    m_Value: 250
+  distanceFadeExponent:
+    m_OverrideState: 1
+    m_Value: 1.5
+  distanceFadeStrength:
+    m_OverrideState: 1
+    m_Value: 1
+  distanceFadeColor:
+    m_OverrideState: 1
+    m_Value: {r: 0.8, g: 0.85, b: 0.95, a: 1}
+  distanceFadeAffectsSkybox:
+    m_OverrideState: 1
+    m_Value: 0
+  steps:
+    m_OverrideState: 1
+    m_Value: 48
+  maxDistance:
+    m_OverrideState: 1
+    m_Value: 200
+  halfResolution:
+    m_OverrideState: 1
+    m_Value: 1
+  temporalReprojection:
+    m_OverrideState: 1
+    m_Value: 1
+  temporalBlendFactor:
+    m_OverrideState: 1
+    m_Value: 0.9
+  enableNoise:
+    m_OverrideState: 1
+    m_Value: 1
+  noiseScale:
+    m_OverrideState: 1
+    m_Value: 0.03
+  noiseIntensity:
+    m_OverrideState: 1
+    m_Value: 0.6
+  noiseWind:
+    m_OverrideState: 1
+    m_Value: {x: 1, y: 0.2, z: 0.5}
+  noiseOctaves:
+    m_OverrideState: 1
+    m_Value: 3
+  mainLightScattering:
+    m_OverrideState: 1
+    m_Value: 1
+  additionalLightsScattering:
+    m_OverrideState: 1
+    m_Value: 1
+  maxAdditionalLights:
+    m_OverrideState: 1
+    m_Value: 8
+  pointLightIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  spotLightIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  volumetricShadows:
+    m_OverrideState: 1
+    m_Value: 1
+  shadowIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  shadowSteps:
+    m_OverrideState: 1
+    m_Value: 8
 --- !u!114 &-6335409530604852063
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -468,6 +586,8 @@ MonoBehaviour:
   - {fileID: -6288072647309666549}
   - {fileID: 7518938298396184218}
   - {fileID: -1410297666881709256}
+  - {fileID: -7208684132149000951}
+  - {fileID: 4691469175598008605}
 --- !u!114 &853819529557874667
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -856,6 +976,56 @@ MonoBehaviour:
   intensity:
     m_OverrideState: 1
     m_Value: 0
+--- !u!114 &4691469175598008605
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 660656a9a97e4b318fbbf8711f5c1fca, type: 3}
+  m_Name: OutlineVolumeSettings
+  m_EditorClassIdentifier: Assembly-CSharp-firstpass::OutlineVolumeSettings
+  active: 1
+  enabled:
+    m_OverrideState: 1
+    m_Value: 0
+  globalIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  groups:
+    m_OverrideState: 1
+    m_Value:
+    - name: Default
+      enabled: 1
+      mode: 0
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      thickness: 1
+      color: {r: 0, g: 0, b: 0, a: 1}
+      depthThreshold: 0.1
+      normalThreshold: 0.4
+      colorThreshold: 0.1
+      useDepth: 1
+      useNormals: 1
+      useColor: 0
+    - name: Highlight
+      enabled: 1
+      mode: 1
+      layerMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      thickness: 2
+      color: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+      depthThreshold: 0.1
+      normalThreshold: 0.4
+      colorThreshold: 0.1
+      useDepth: 1
+      useNormals: 1
+      useColor: 0
 --- !u!114 &6940869943325143175
 MonoBehaviour:
   m_ObjectHideFlags: 3

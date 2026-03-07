@@ -551,7 +551,7 @@ namespace Sixty.EditorTools
                 so.FindProperty("trimMaterial").objectReferenceValue = trimMaterial;
                 so.FindProperty("accentMaterial").objectReferenceValue = assets.accentMaterial;
                 so.FindProperty("guideMaterial").objectReferenceValue = guideMaterial;
-                so.FindProperty("wallDetailDensity").intValue = 8;
+                so.FindProperty("wallClusterDensity").intValue = 14;
             });
 
             RoomLayoutDirector roomLayoutDirector = world.AddComponent<RoomLayoutDirector>();
@@ -585,10 +585,20 @@ namespace Sixty.EditorTools
             if (voidCompute != null && voidShader != null)
             {
                 Material voidInstanceMaterial = new Material(voidShader);
-                voidInstanceMaterial.SetColor("_BaseColor", new Color(0.02f, 0.025f, 0.035f, 1f));
-                voidInstanceMaterial.SetColor("_GlowColor", new Color(0.9f, 0.95f, 1f, 1f));
-                voidInstanceMaterial.SetFloat("_GlowIntensity", 3.0f);
-                voidInstanceMaterial.SetFloat("_EdgeDarken", 0.7f);
+                voidInstanceMaterial.enableInstancing = true;
+                voidInstanceMaterial.SetColor("_BaseColor", new Color(0.06f, 0.07f, 0.09f, 1f));
+                voidInstanceMaterial.SetColor("_TopColor", new Color(0.12f, 0.14f, 0.18f, 1f));
+                voidInstanceMaterial.SetColor("_GlowColor", new Color(0.4f, 0.85f, 0.95f, 1f));
+                voidInstanceMaterial.SetFloat("_GlowIntensity", 4.0f);
+                voidInstanceMaterial.SetFloat("_AmbientStrength", 0.35f);
+                voidInstanceMaterial.SetFloat("_NoiseScale", 0.04f);
+                voidInstanceMaterial.SetFloat("_NoiseStrength", 0.45f);
+                voidInstanceMaterial.SetFloat("_CavityWidth", 0.06f);
+                voidInstanceMaterial.SetFloat("_CavityStrength", 0.55f);
+                voidInstanceMaterial.SetColor("_CavityColor", new Color(0.02f, 0.025f, 0.035f, 1f));
+                voidInstanceMaterial.SetFloat("_TriangleScale", 0.5f);
+                voidInstanceMaterial.SetFloat("_TriangleDensity", 0.06f);
+                voidInstanceMaterial.SetFloat("_TriangleBrightness", 1.3f);
                 AssetDatabase.CreateAsset(voidInstanceMaterial, $"{MaterialsFolder}/M_VoidCity.mat");
 
                 GameObject voidGo = new GameObject("VoidCityGenerator");
@@ -1258,6 +1268,7 @@ namespace Sixty.EditorTools
                 so.FindProperty("runDirector").objectReferenceValue = runDirector;
                 so.FindProperty("lowTimeThreshold").floatValue = 10f;
                 so.FindProperty("pulseDuration").floatValue = 0.2f;
+                so.FindProperty("notificationDuration").floatValue = 2.5f;
             });
 
             // Screen flash overlay still uses UGUI Canvas for full-screen image flash
@@ -2341,6 +2352,62 @@ namespace Sixty.EditorTools
         }
 
         private static Material CreateOrUpdateMaterial(string path, Color color)
+        {
+            // Entity materials (player, enemies, projectiles, pickups) use crystal shader
+            // Wall/architectural materials use standard lit
+            string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (filename.StartsWith("M_Player") || filename.StartsWith("M_Drone") ||
+                filename.StartsWith("M_Turret") || filename.StartsWith("M_Hunter") ||
+                filename.StartsWith("M_Tank") || filename.StartsWith("M_Boss") ||
+                filename.StartsWith("M_EnemyProjectile") || filename.StartsWith("M_ClockPickup"))
+            {
+                return CreateOrUpdateCrystalMaterial(path, color);
+            }
+
+            return CreateOrUpdateLitMaterial(path, color);
+        }
+
+        private static Material CreateOrUpdateCrystalMaterial(string path, Color color)
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            Shader crystalShader = Shader.Find("Sixty/CrystalEntity");
+
+            if (crystalShader == null)
+            {
+                // Fallback if crystal shader not yet compiled
+                return CreateOrUpdateLitMaterial(path, color);
+            }
+
+            if (material == null)
+            {
+                material = new Material(crystalShader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            else
+            {
+                material.shader = crystalShader;
+            }
+
+            // Crystal shader properties
+            material.SetColor("_BaseColor", color);
+            material.SetColor("_EdgeColor", Color.Lerp(color, Color.white, 0.5f));
+            material.SetColor("_EmissionColor", color);
+            material.SetFloat("_EmissionIntensity", 1.5f);
+            material.SetFloat("_FresnelPower", 3.0f);
+            material.SetFloat("_FresnelIntensity", 0.6f);
+            material.SetFloat("_FacetStrength", 0.85f);
+            material.SetFloat("_SpecularPower", 64f);
+            material.SetFloat("_SpecularIntensity", 1.2f);
+            material.SetFloat("_AmbientStrength", 0.25f);
+            material.SetFloat("_CavityWidth", 0.06f);
+            material.SetFloat("_CavityStrength", 0.5f);
+            material.SetColor("_CavityColor", Color.Lerp(color, Color.black, 0.7f));
+
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        private static Material CreateOrUpdateLitMaterial(string path, Color color)
         {
             Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)

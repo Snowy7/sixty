@@ -6,7 +6,7 @@ namespace Sixty.CameraSystem
     public class TopDownCameraFollow : IaBehaviour
     {
         [SerializeField] private Transform target;
-        [SerializeField] private Vector3 offset = new Vector3(0f, 22f, -12f);
+        [SerializeField] private Vector3 offset = new Vector3(0f, 16f, -9f);
         [SerializeField] private float followLerpSpeed = 8f;
         [SerializeField] private bool lookAtTarget = true;
         [Header("Shake")]

@@ -21,7 +21,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_ClockPickup
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  m_Shader: {fileID: 4800000, guid: fcd8e75f59518c94c8d6253bad629a67, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
@@ -31,8 +31,7 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -100,6 +99,7 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
+    - _AmbientStrength: 0.25
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
@@ -111,7 +111,13 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
+    - _EdgeBrightness: 2
+    - _EdgeWidth: 0.04
+    - _EmissionIntensity: 1.5
     - _EnvironmentReflections: 1
+    - _FacetStrength: 0.85
+    - _FresnelIntensity: 0.6
+    - _FresnelPower: 3
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -123,16 +129,21 @@ Material:
     - _Smoothness: 0.88
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
+    - _SpecularIntensity: 1.2
+    - _SpecularPower: 64
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
+    - _UseFlashColor: 0
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 0.85, b: 0.15, a: 1}
     - _Color: {r: 1, g: 0.85, b: 0.15, a: 1}
-    - _EmissionColor: {r: 2.8, g: 2.38, b: 0.42000002, a: 2.8}
+    - _EdgeColor: {r: 1, g: 0.925, b: 0.575, a: 1}
+    - _EmissionColor: {r: 1, g: 0.85, b: 0.15, a: 1}
+    - _FlashColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

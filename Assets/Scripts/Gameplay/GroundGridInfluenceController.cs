@@ -22,7 +22,7 @@ namespace Sixty.Gameplay
         private static readonly int EnemyCountId = Shader.PropertyToID("_EnemyCount");
         private static readonly int InfluenceRadiusId = Shader.PropertyToID("_InfluenceRadius");
         private static readonly int FalloffExponentId = Shader.PropertyToID("_FalloffExponent");
-        private static readonly int LightPosId = Shader.PropertyToID("_Light1Pos");
+        private static readonly int LightPosId = Shader.PropertyToID("_PlayerPos");
 
         public void SetRuntimeRenderers(Renderer[] renderers)
         {

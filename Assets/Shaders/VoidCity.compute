@@ -1,5 +1,5 @@
 // Compute shader that generates a dense cubical void cityscape.
-// Outputs per-instance data (position, scale, emissive flag) into a StructuredBuffer.
+// Every cell spawns a cube — no gaps. Height varies gradually via noise.
 #pragma kernel CSMain
 
 struct VoidCubeInstance
@@ -19,9 +19,12 @@ int    _GridCountX;
 int    _GridCountZ;
 int    _MaxInstances;
 
-// Room exclusion zones (up to 16 rooms)
 int    _RoomCount;
-float4 _RoomCenters[16]; // xyz = center, w = halfExtent
+float4 _RoomCenters[16];
+
+int    _CorridorCount;
+float4 _CorridorMins[16];
+float4 _CorridorMaxs[16];
 
 uint Hash(uint x)
 {
@@ -38,16 +41,86 @@ float HashFloat01(uint h)
     return float(h & 0xFFFFFF) / float(0xFFFFFF);
 }
 
-bool IsInsideRoom(float3 pos)
+// Smooth 2D value noise for gradual height field
+float hash2d(float2 p)
 {
+    p = frac(p * float2(443.897, 441.423));
+    p += dot(p, p.yx + 19.19);
+    return frac(p.x * p.y);
+}
+
+float valueNoise2D(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = frac(p);
+    f = f * f * (3.0 - 2.0 * f); // smoothstep
+
+    float a = hash2d(i);
+    float b = hash2d(i + float2(1, 0));
+    float c = hash2d(i + float2(0, 1));
+    float d = hash2d(i + float2(1, 1));
+
+    return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+}
+
+// Multi-octave noise for natural rolling terrain
+float heightNoise(float2 p)
+{
+    float h = 0.0;
+    h += valueNoise2D(p * 0.02) * 1.0;    // very broad rolls
+    h += valueNoise2D(p * 0.06) * 0.5;    // medium variation
+    h += valueNoise2D(p * 0.15) * 0.2;    // fine detail
+    return h / 1.7; // normalize to ~0-1
+}
+
+bool IsInsideRoom(float3 pos, out float wallProximity)
+{
+    wallProximity = 99999.0;
     for (int i = 0; i < _RoomCount; i++)
     {
         float3 rc = _RoomCenters[i].xyz;
         float  he = _RoomCenters[i].w;
-        if (abs(pos.x - rc.x) < he + 4.0 && abs(pos.z - rc.z) < he + 4.0)
+        float  margin = he + 1.2;
+
+        float dx = abs(pos.x - rc.x);
+        float dz = abs(pos.z - rc.z);
+
+        float distToWallX = dx - he;
+        float distToWallZ = dz - he;
+        float distToWall = max(distToWallX, distToWallZ);
+        wallProximity = min(wallProximity, max(0.0, distToWall));
+
+        if (dx < margin && dz < margin)
             return true;
     }
     return false;
+}
+
+bool IsInsideCorridor(float3 pos)
+{
+    for (int i = 0; i < _CorridorCount; i++)
+    {
+        float3 cMin = _CorridorMins[i].xyz;
+        float3 cMax = _CorridorMaxs[i].xyz;
+        if (pos.x > cMin.x - 2.0 && pos.x < cMax.x + 2.0 &&
+            pos.z > cMin.z - 2.0 && pos.z < cMax.z + 2.0)
+            return true;
+    }
+    return false;
+}
+
+void AppendInstance(float3 pos, float3 scale, float emissive)
+{
+    uint index;
+    InterlockedAdd(_CounterBuffer[0], 1, index);
+    if ((int)index >= _MaxInstances)
+        return;
+
+    VoidCubeInstance inst;
+    inst.position = pos;
+    inst.scale = scale;
+    inst.emissive = emissive;
+    _ResultBuffer[index] = inst;
 }
 
 [numthreads(8, 8, 1)]
@@ -59,68 +132,75 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float worldX = _WorldBounds.x + id.x * _CellSize;
     float worldZ = _WorldBounds.y + id.y * _CellSize;
 
-    // Hash for deterministic randomness
     uint seed = Hash(id.x * 73856093u ^ id.y * 19349663u);
     float r0 = HashFloat01(seed);
-    float r1 = HashFloat01(Hash(seed + 1u));
-    float r2 = HashFloat01(Hash(seed + 2u));
-    float r3 = HashFloat01(Hash(seed + 3u));
-    float r4 = HashFloat01(Hash(seed + 4u));
+    float r5 = HashFloat01(Hash(seed + 5u));
 
-    // Skip some cells for variation (30% empty)
-    if (r0 < 0.30)
+    // Random span: cube covers 1-3 cells in each axis for size variety
+    float spanX = 1.0;
+    float spanZ = 1.0;
+    if (r0 > 0.65) spanX = 2.0;
+    if (r0 > 0.90) spanX = 3.0;
+    float r0b = HashFloat01(Hash(seed + 6u));
+    if (r0b > 0.65) spanZ = 2.0;
+    if (r0b > 0.90) spanZ = 3.0;
+
+    // Position: center of spanned area, exactly filling the cells
+    float3 pos = float3(
+        worldX + _CellSize * spanX * 0.5,
+        0,
+        worldZ + _CellSize * spanZ * 0.5
+    );
+
+    float wallProximity;
+    if (IsInsideRoom(pos, wallProximity))
         return;
 
-    float3 pos = float3(worldX + r1 * _CellSize * 0.3, 0, worldZ + r2 * _CellSize * 0.3);
-    if (IsInsideRoom(pos))
+    if (IsInsideCorridor(pos))
         return;
 
-    // Height variation: most are short, some are tall
-    float heightBase = 0.3 + r3 * 2.5;
-    if (r4 > 0.85)
-        heightBase = 3.0 + r3 * 8.0;  // occasional tall monolith
-    else if (r4 > 0.6)
-        heightBase = 1.5 + r3 * 4.0;  // medium
+    // Gradual height from noise — smooth rolling landscape
+    float noiseH = heightNoise(float2(worldX, worldZ));
 
-    float width = _CellSize * (0.35 + r1 * 0.55);
-    float depth = _CellSize * (0.35 + r2 * 0.55);
+    // Small per-cell variation so adjacent same-noise cells aren't identical
+    float cellVar = HashFloat01(Hash(seed + 7u));
+
+    // Map noise to height: base 0.15, gradual hills up to ~20
+    float heightBase = 0.15 + noiseH * noiseH * 18.0 + cellVar * 0.6;
+
+    // Near walls: clamp height so void never rises above wall height (3.2)
+    // Ramp down smoothly within 6m of walls
+    float wallMaxHeight = 3.0;
+    float wallRampDist = 6.0;
+    if (wallProximity < wallRampDist)
+    {
+        float t = wallProximity / wallRampDist; // 0 at wall, 1 at ramp edge
+        float maxH = lerp(0.3, wallMaxHeight, t * t);
+        heightBase = min(heightBase, maxH);
+    }
+
+    // Width/depth: exactly fill spanned cells — no gaps
+    float width = _CellSize * spanX;
+    float depth = _CellSize * spanZ;
 
     pos.y = _BaseY + heightBase * 0.5;
 
-    // Determine if this is a glow cube (2% chance, only smaller cubes)
-    float isGlow = (r4 < 0.02 && heightBase < 2.0) ? 1.0 : 0.0;
+    // Every cell gets a cube — no skipping
+    AppendInstance(pos, float3(width, heightBase, depth), 0);
 
-    // Append to buffer
-    uint index;
-    InterlockedAdd(_CounterBuffer[0], 1, index);
-    if ((int)index >= _MaxInstances)
-        return;
-
-    VoidCubeInstance inst;
-    inst.position = pos;
-    inst.scale = float3(width, heightBase, depth);
-    inst.emissive = isGlow;
-    _ResultBuffer[index] = inst;
-
-    // Some cells have a smaller secondary block next to them
-    if (r0 > 0.65)
+    // Glow cubes: mix of small accent lights and bigger feature lights
+    if (r5 < 0.04)
     {
-        float h2 = heightBase * (0.3 + r2 * 0.5);
-        float w2 = width * 0.5;
-        float3 pos2 = pos + float3(width * 0.7, (h2 - heightBase) * 0.5, depth * 0.3 * (r1 > 0.5 ? 1 : -1));
+        float glowRand = HashFloat01(Hash(seed + 8u));
+        float glowSize;
+        if (glowRand < 0.4)
+            glowSize = 0.8 + glowRand * 0.5;  // big: 0.6-0.8
+        else
+            glowSize = 0.25 + glowRand * 0.2;  // small: 0.25-0.45
 
-        if (!IsInsideRoom(pos2))
-        {
-            uint index2;
-            InterlockedAdd(_CounterBuffer[0], 1, index2);
-            if ((int)index2 < _MaxInstances)
-            {
-                VoidCubeInstance inst2;
-                inst2.position = pos2;
-                inst2.scale = float3(w2, h2, w2);
-                inst2.emissive = 0;
-                _ResultBuffer[index2] = inst2;
-            }
-        }
+        float glowY = _BaseY + heightBase + glowSize * 0.5 + 0.02;
+        float3 glowPos = float3(pos.x, glowY, pos.z);
+
+        AppendInstance(glowPos, float3(glowSize, glowSize, glowSize), 1.0);
     }
 }
