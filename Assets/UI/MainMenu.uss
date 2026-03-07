@@ -1,0 +1,214 @@
+/* Sixty - Main Menu */
+
+/* ===== ROOT ===== */
+.menu-root {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0);
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* ===== DECORATIVE BACKGROUND ===== */
+
+.bg-number {
+    position: absolute;
+    right: -40px;
+    bottom: -80px;
+    font-size: 500px;
+    color: rgba(255, 255, 255, 0.02);
+    -unity-font-style: bold;
+    letter-spacing: -10px;
+}
+
+.accent-line-h {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 45%;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.035);
+}
+
+.accent-line-v {
+    position: absolute;
+    left: 80px;
+    top: 15%;
+    bottom: 15%;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== MAIN CONTENT ===== */
+
+.content-left {
+    position: absolute;
+    left: 110px;
+    top: 0;
+    bottom: 0;
+    justify-content: center;
+    padding-bottom: 40px;
+}
+
+/* Title block */
+.title-block {
+    margin-bottom: 48px;
+}
+
+.title-pre {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.18);
+    letter-spacing: 5px;
+    margin-bottom: 12px;
+    margin-left: 4px;
+}
+
+.title {
+    font-size: 86px;
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    letter-spacing: 18px;
+    margin-bottom: 0;
+    padding: 0;
+}
+
+.title-rule {
+    width: 56px;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.45);
+    margin-top: 14px;
+    margin-bottom: 14px;
+    margin-left: 4px;
+}
+
+.subtitle {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.22);
+    letter-spacing: 8px;
+    margin-left: 4px;
+    padding: 0;
+}
+
+/* ===== NAVIGATION ===== */
+
+.nav-block {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Base button reset — override Unity defaults */
+.nav-item {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-left-width: 2px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    padding: 10px 44px 10px 18px;
+    margin: 0 0 2px 0;
+    letter-spacing: 5px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    transition-property: color, border-color, background-color, padding-left;
+    transition-duration: 0.12s;
+}
+
+.nav-item:hover {
+    color: rgb(255, 255, 255);
+    border-color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.04);
+    padding-left: 26px;
+}
+
+.nav-item:active {
+    color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Override Unity focus/checked defaults */
+.nav-item:focus {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.nav-item:hover:focus {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.nav-primary {
+    color: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.22);
+    font-size: 15px;
+}
+
+.nav-secondary {
+    color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.04);
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.nav-secondary:hover {
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== BOTTOM BAR ===== */
+
+.bottom-bar {
+    position: absolute;
+    left: 110px;
+    right: 80px;
+    bottom: 36px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.meta-block {
+    flex-direction: row;
+}
+
+.meta-stat {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.14);
+    letter-spacing: 2px;
+    margin-right: 24px;
+}
+
+.controls-block {
+    flex-direction: row;
+}
+
+.control-row {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 20px;
+}
+
+.control-key {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.28);
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+    padding: 3px 7px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    margin-right: 6px;
+}
+
+.control-label {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.11);
+    letter-spacing: 2px;
+}
+
+/* ===== LEGACY COMPAT (old layout classes, unused but safe) ===== */
+.bg-overlay { display: none; }
+.menu-center { display: none; }
+.menu-buttons { display: none; }
+.menu-btn { display: none; }
+.menu-btn-secondary { display: none; }
+.menu-footer { display: none; }
+.footer-text { display: none; }

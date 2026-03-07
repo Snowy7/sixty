@@ -6,8 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/SixtyGenerated/Scenes/Sixty_MainMenu.unity
+    guid: e96bd0e9c5ebf7f4989a5e2864a80444
   - enabled: 1
     path: Assets/SixtyGenerated/Scenes/Sixty_Playable.unity
     guid: e85c6da7e47101646b520dd19ca1afe3

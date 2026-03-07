@@ -1,0 +1,44 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/MainMenu.uss?fileID=7433441132597879392&amp;guid=828298e474a7c7642a46929b1ea8171b&amp;type=3#MainMenu"/>
+    <ui:VisualElement picking-mode="Ignore" class="menu-root">
+        <ui:Label text="60" picking-mode="Ignore" class="bg-number"/>
+        <ui:VisualElement picking-mode="Ignore" class="accent-line-h" style="top: 37%;"/>
+        <ui:VisualElement picking-mode="Ignore" class="accent-line-v"/>
+        <ui:VisualElement picking-mode="Ignore" name="VisualElement" class="content-left" style="top: 108px;">
+            <ui:VisualElement picking-mode="Ignore" class="title-block">
+                <ui:Label text="// TIME IS LIFE" class="title-pre"/>
+                <ui:Label text="SIXTY" class="title"/>
+                <ui:VisualElement picking-mode="Ignore" class="title-rule"/>
+                <ui:Label text="TOP-DOWN SHOOTER" class="subtitle"/>
+            </ui:VisualElement>
+            <ui:VisualElement picking-mode="Ignore" class="nav-block">
+                <ui:Button name="play-button" text="START RUN" class="nav-item nav-primary"/>
+                <ui:Button name="quit-button" text="EXIT" class="nav-item nav-secondary"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement picking-mode="Ignore" class="bottom-bar">
+            <ui:VisualElement picking-mode="Ignore" class="meta-block">
+                <ui:Label name="meta-deaths" text="" class="meta-stat"/>
+                <ui:Label name="meta-clears" text="" class="meta-stat"/>
+            </ui:VisualElement>
+            <ui:VisualElement picking-mode="Ignore" class="controls-block">
+                <ui:VisualElement picking-mode="Ignore" class="control-row">
+                    <ui:Label text="WASD" class="control-key"/>
+                    <ui:Label text="MOVE" class="control-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement picking-mode="Ignore" class="control-row">
+                    <ui:Label text="MOUSE" class="control-key"/>
+                    <ui:Label text="AIM" class="control-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement picking-mode="Ignore" class="control-row">
+                    <ui:Label text="LMB" class="control-key"/>
+                    <ui:Label text="SHOOT" class="control-label"/>
+                </ui:VisualElement>
+                <ui:VisualElement picking-mode="Ignore" class="control-row">
+                    <ui:Label text="SPACE" class="control-key"/>
+                    <ui:Label text="DASH" class="control-label"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

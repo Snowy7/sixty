@@ -30,6 +30,21 @@ namespace Sixty.CameraSystem
 
         private float shakeTrauma;
 
+        public bool TryGetPredictedPose(float deltaTime, out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+
+            if (target == null)
+            {
+                return false;
+            }
+
+            position = GetFollowPosition(deltaTime, position);
+            rotation = GetLookRotation(position, rotation);
+            return true;
+        }
+
         public override void OnIaLateUpdate(float deltaTime)
         {
             if (target == null)
@@ -37,15 +52,9 @@ namespace Sixty.CameraSystem
                 return;
             }
 
-            Vector3 desiredPosition = target.position + offset;
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, followLerpSpeed * deltaTime);
-
-            if (lookAtTarget)
-            {
-                Vector3 lookAt = target.position;
-                lookAt.y = 0.75f;
-                transform.rotation = Quaternion.LookRotation(lookAt - transform.position, Vector3.up);
-            }
+            Vector3 nextPosition = GetFollowPosition(deltaTime, transform.position);
+            Quaternion nextRotation = GetLookRotation(nextPosition, transform.rotation);
+            transform.SetPositionAndRotation(nextPosition, nextRotation);
 
             if (shakeTrauma > 0f)
             {
@@ -61,6 +70,30 @@ namespace Sixty.CameraSystem
 
                 shakeTrauma = Mathf.Max(0f, shakeTrauma - (shakeDecayPerSecond * deltaTime));
             }
+        }
+
+        private Vector3 GetFollowPosition(float deltaTime, Vector3 currentPosition)
+        {
+            Vector3 desiredPosition = target.position + offset;
+            return Vector3.Lerp(currentPosition, desiredPosition, followLerpSpeed * deltaTime);
+        }
+
+        private Quaternion GetLookRotation(Vector3 cameraPosition, Quaternion fallbackRotation)
+        {
+            if (!lookAtTarget)
+            {
+                return fallbackRotation;
+            }
+
+            Vector3 lookAt = target.position;
+            lookAt.y = 0.75f;
+            Vector3 lookDirection = lookAt - cameraPosition;
+            if (lookDirection.sqrMagnitude <= 0.0001f)
+            {
+                return fallbackRotation;
+            }
+
+            return Quaternion.LookRotation(lookDirection.normalized, Vector3.up);
         }
     }
 }

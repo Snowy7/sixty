@@ -10,7 +10,7 @@ namespace Sixty.Combat
     {
         [SerializeField] private float timeDamage = 2f;
         [SerializeField] private float hitCooldown = 0.35f;
-        [SerializeField] private bool triggerDamageFeedback = false;
+        [SerializeField] private bool triggerDamageFeedback = true;
         
         protected override IaUpdateGroup UpdateGroup => IaUpdateGroup.AI;
         protected override IaUpdatePhase UpdatePhases => IaUpdatePhase.None;
@@ -87,12 +87,19 @@ namespace Sixty.Combat
                 return;
             }
 
+            // Ignore triggers (projectiles, other damage zones)
+            if (other.isTrigger)
+            {
+                return;
+            }
+
             Transform otherRoot = other.transform.root;
             if (otherRoot == null)
             {
                 return;
             }
 
+            // Only damage the player's body collider, not projectiles or other objects
             PlayerController player = otherRoot.GetComponent<PlayerController>();
             if (player == null)
             {

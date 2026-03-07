@@ -89,6 +89,8 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
+    - _CavityStrength: 0.5
+    - _CavityWidth: 0.06
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
@@ -126,6 +128,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 0.08, b: 0.65, a: 1}
+    - _CavityColor: {r: 0.3, g: 0.024, b: 0.19500001, a: 1}
     - _Color: {r: 1, g: 0.079999976, b: 0.65, a: 1}
     - _EdgeColor: {r: 1, g: 0.54, b: 0.825, a: 1}
     - _EmissionColor: {r: 1, g: 0.08, b: 0.65, a: 1}

@@ -9,6 +9,7 @@ using Sixty.Player;
 using Sixty.UI;
 using Sixty.World;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Sixty.Gameplay
 {
@@ -45,8 +46,8 @@ namespace Sixty.Gameplay
 
         [Header("Run Structure")]
         [SerializeField] private int totalRooms = 10;
-        [SerializeField] private int minEnemiesPerRoom = 3;
-        [SerializeField] private int maxEnemiesPerRoom = 6;
+        [SerializeField] private int minEnemiesPerRoom = 5;
+        [SerializeField] private int maxEnemiesPerRoom = 9;
         [SerializeField] private float delayBetweenRooms = 1.1f;
         [SerializeField] private float spawnRadiusJitter = 1.8f;
 
@@ -268,6 +269,9 @@ namespace Sixty.Gameplay
             }
 
             IaEventBus.Publish(new RunWonEvent());
+
+            // Return to main menu after a short delay
+            StartCoroutine(ReturnToMenuAfterDelay(3.5f));
         }
 
         private void SpawnRoom(int roomNumber, RoomType roomType)
@@ -1053,6 +1057,22 @@ namespace Sixty.Gameplay
             }
 
             return Vector3.zero;
+        }
+
+        private IEnumerator ReturnToMenuAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            SceneTransitionOverlay overlay = SceneTransitionOverlay.EnsureInstance();
+            // Scene 0 is the main menu
+            if (SceneManager.sceneCountInBuildSettings > 1)
+            {
+                overlay.TransitionToScene(0);
+            }
+            else
+            {
+                // No menu scene — just restart
+                overlay.TransitionToScene(SceneManager.GetActiveScene().buildIndex);
+            }
         }
 
         private void AttachPlayerHealthBar()

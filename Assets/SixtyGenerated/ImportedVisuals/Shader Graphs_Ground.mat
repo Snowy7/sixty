@@ -55,8 +55,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _CellSize: 1.1
-    - _EmissionIntensity: 0.52
+    - _CellSize: 1
+    - _EmissionIntensity: 4
     - _EnemyCount: 0
     - _FalloffExponent: 1.5
     - _Feather: 0.02
@@ -68,10 +68,10 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     m_Colors:
-    - _BaseColor: {r: 0.509434, g: 0.509434, b: 0.509434, a: 1}
-    - _EnemyHighlight: {r: 0.8862745, g: 0.38823533, b: 0.3928741, a: 1}
-    - _HighlightColor: {r: 0.43867922, g: 1, b: 0.9084116, a: 1}
+    - _BaseColor: {r: 0.5283019, g: 0.505874, b: 0.505874, a: 1}
+    - _EnemyHighlight: {r: 1, g: 0.13679248, b: 0.16863294, a: 1}
+    - _HighlightColor: {r: 0.26792157, g: 0.61, b: 0.55498046, a: 1}
     - _Light1Pos: {r: -100000, g: 0, b: -100000, a: 0}
-    - _LineColor: {r: 0.2735849, g: 0.2735849, b: 0.2735849, a: 1}
+    - _LineColor: {r: 0.20754719, g: 0.20754719, b: 0.20754719, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

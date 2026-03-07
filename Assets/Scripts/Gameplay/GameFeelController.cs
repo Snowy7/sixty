@@ -304,7 +304,9 @@ namespace Sixty.Gameplay
 
         private void HandleTimeChanged(float remaining, float delta)
         {
-            if (remaining > 10f || lowTimePulseCooldown > 0f || delta >= 0f)
+            // Only react to significant time losses (damage), not normal clock ticks
+            // Normal ticks are small (deltaTime ~0.016), damage events are >= 1 second
+            if (remaining > 10f || lowTimePulseCooldown > 0f || delta >= -0.5f)
             {
                 return;
             }

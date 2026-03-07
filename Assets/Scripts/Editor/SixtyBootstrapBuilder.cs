@@ -206,6 +206,58 @@ namespace Sixty.EditorTools
                 "OK");
         }
 
+        [MenuItem("Tools/Sixty/Rebuild Materials Only")]
+        public static void RebuildMaterialsOnly()
+        {
+            EnsureGeneratedFolders();
+            BootstrapAssets assets = CreateOrUpdateAssets();
+            if (assets == null) return;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("SIXTY", "Materials rebuilt.", "OK");
+        }
+
+        [MenuItem("Tools/Sixty/Rebuild Prefabs Only")]
+        public static void RebuildPrefabsOnly()
+        {
+            EnsureGeneratedFolders();
+            BootstrapAssets assets = CreateOrUpdateAssets();
+            if (assets == null) return;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("SIXTY", "Prefabs rebuilt (includes materials as dependencies).", "OK");
+        }
+
+        [MenuItem("Tools/Sixty/Rebuild Enemy Prefabs Only")]
+        public static void RebuildEnemyPrefabsOnly()
+        {
+            EnsureGeneratedFolders();
+            BootstrapAssets assets = CreateOrUpdateAssets();
+            if (assets == null) return;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("SIXTY", "Enemy prefabs rebuilt with current health/stats.", "OK");
+        }
+
+        [MenuItem("Tools/Sixty/Update Active Scene RunDirector")]
+        public static void UpdateActiveSceneRunDirector()
+        {
+            RunDirector director = UnityEngine.Object.FindFirstObjectByType<RunDirector>();
+            if (director == null)
+            {
+                EditorUtility.DisplayDialog("SIXTY", "No RunDirector found in active scene.", "OK");
+                return;
+            }
+
+            EnsureGeneratedFolders();
+            BootstrapAssets assets = CreateOrUpdateAssets();
+            if (assets == null) return;
+            ConfigureRunDirectorBase(director, assets);
+            EditorUtility.SetDirty(director);
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog("SIXTY", "RunDirector updated with current enemy prefabs and settings.", "OK");
+        }
+
         private static BootstrapAssets CreateOrUpdateAssets()
         {
             InputActionAsset inputActions = ResolveInputActionsAsset();
@@ -353,7 +405,7 @@ namespace Sixty.EditorTools
                 primitiveType = PrimitiveType.Sphere,
                 scale = new Vector3(1.1f, 1.1f, 1.1f),
                 material = assets.droneMaterial,
-                maxHealth = 30f,
+                maxHealth = 15f,
                 destroyOnDeath = true,
                 addChaser = true,
                 moveSpeed = 4.9f,
@@ -383,7 +435,7 @@ namespace Sixty.EditorTools
                 primitiveType = PrimitiveType.Cube,
                 scale = new Vector3(1.6f, 1.6f, 1.6f),
                 material = assets.turretMaterial,
-                maxHealth = 50f,
+                maxHealth = 25f,
                 destroyOnDeath = true,
                 addChaser = true,
                 moveSpeed = 2.6f,
@@ -412,7 +464,7 @@ namespace Sixty.EditorTools
                 primitiveType = PrimitiveType.Capsule,
                 scale = new Vector3(1f, 1.15f, 1f),
                 material = assets.hunterMaterial,
-                maxHealth = 40f,
+                maxHealth = 20f,
                 destroyOnDeath = true,
                 addChaser = true,
                 moveSpeed = 4.6f,
@@ -451,7 +503,7 @@ namespace Sixty.EditorTools
                 primitiveType = PrimitiveType.Cube,
                 scale = new Vector3(2.1f, 2.1f, 2.1f),
                 material = assets.tankMaterial,
-                maxHealth = 120f,
+                maxHealth = 60f,
                 destroyOnDeath = true,
                 addChaser = true,
                 moveSpeed = 2.2f,
@@ -476,7 +528,7 @@ namespace Sixty.EditorTools
                 primitiveType = PrimitiveType.Cylinder,
                 scale = new Vector3(3.4f, 2.5f, 3.4f),
                 material = assets.bossMaterial,
-                maxHealth = 800f,
+                maxHealth = 400f,
                 destroyOnDeath = true,
                 addChaser = true,
                 moveSpeed = 2.6f,
@@ -2277,8 +2329,8 @@ namespace Sixty.EditorTools
 
             Vignette vignette = GetOrCreateVolumeComponent<Vignette>(profile);
             vignette.active = true;
-            vignette.intensity.Override(0.32f);
-            vignette.smoothness.Override(0.85f);
+            vignette.intensity.Override(0.16f);
+            vignette.smoothness.Override(0.72f);
             vignette.rounded.Override(false);
 
             ChromaticAberration chromatic = GetOrCreateVolumeComponent<ChromaticAberration>(profile);

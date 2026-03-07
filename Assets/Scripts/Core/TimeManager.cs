@@ -1,6 +1,7 @@
 using System;
 using Ia.Core.Events;
 using Ia.Core.Update;
+using Sixty.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -164,8 +165,9 @@ namespace Sixty.Core
 
             if (restartSceneOnTimeout)
             {
-                Scene activeScene = SceneManager.GetActiveScene();
-                SceneManager.LoadScene(activeScene.buildIndex);
+                SceneTransitionOverlay overlay = SceneTransitionOverlay.EnsureInstance();
+                int buildIndex = SceneManager.GetActiveScene().buildIndex;
+                overlay.TransitionToScene(buildIndex);
             }
         }
     }

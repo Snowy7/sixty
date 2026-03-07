@@ -9,9 +9,12 @@ namespace Sixty.Gameplay
         [SerializeField] private UnityEngine.Rendering.Volume volume;
 
         [Header("Low Time")]
+        [SerializeField] private float lowTimeRampStart = 45f;
         [SerializeField] private float lowTimeThreshold = 10f;
-        [SerializeField] private float lowTimeVignetteBoost = 0.22f;
-        [SerializeField] private float lowTimeSaturationPenalty = 26f;
+        [SerializeField] private float lowTimeCurvePower = 2.2f;
+        [SerializeField] private float maxBaseVignette = 0.18f;
+        [SerializeField] private float lowTimeVignetteBoost = 0.14f;
+        [SerializeField] private float lowTimeSaturationPenalty = 18f;
         [SerializeField] private float lowTimeSmoothing = 4.5f;
 
         [Header("Pulse Decay")]
@@ -56,12 +59,15 @@ namespace Sixty.Gameplay
             float lowTimeFactor = 0f;
             if (Sixty.Core.TimeManager.Instance != null && lowTimeThreshold > 0.01f)
             {
-                lowTimeFactor = Mathf.Clamp01(1f - (Sixty.Core.TimeManager.Instance.TimeRemaining / lowTimeThreshold));
+                float rampStart = Mathf.Max(lowTimeThreshold + 0.01f, lowTimeRampStart);
+                float normalized = Mathf.InverseLerp(rampStart, lowTimeThreshold, Sixty.Core.TimeManager.Instance.TimeRemaining);
+                lowTimeFactor = Mathf.Pow(1f - normalized, Mathf.Max(0.01f, lowTimeCurvePower));
             }
 
             if (vignette != null)
             {
-                float targetVignette = baseVignette + (lowTimeFactor * lowTimeVignetteBoost) + vignettePulse;
+                float gameplayBaseVignette = Mathf.Min(baseVignette, maxBaseVignette);
+                float targetVignette = gameplayBaseVignette + (lowTimeFactor * lowTimeVignetteBoost) + vignettePulse;
                 vignette.intensity.value = Mathf.Lerp(vignette.intensity.value, Mathf.Clamp01(targetVignette), lowTimeSmoothing * deltaTime);
             }
 

@@ -141,7 +141,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.3, g: 1, b: 0.95, a: 1}
-    - _CavityColor: {r: 0.049999982, g: 0.14999998, b: 0.17999998, a: 1}
+    - _CavityColor: {r: 0.09, g: 0.3, b: 0.285, a: 1}
     - _Color: {r: 0.29999998, g: 1, b: 0.95, a: 1}
     - _EdgeColor: {r: 0.65, g: 1, b: 0.975, a: 1}
     - _EmissionColor: {r: 0.3, g: 1, b: 0.95, a: 1}

@@ -76,6 +76,7 @@ namespace Sixty.Combat
                 }
 
                 Vector3 hitPoint = other.ClosestPoint(transform.position);
+                DamageNumberPopup.Spawn(hitPoint, damage, wasKilled);
                 GameFeelController.Instance?.OnEnemyHit(hitPoint, wasKilled, health != null ? health.transform : other.transform.root);
 
                 if (destroyOnHit)

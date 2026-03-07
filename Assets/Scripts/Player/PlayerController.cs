@@ -1,5 +1,6 @@
 using Sixty.Combat;
 using Sixty.Core;
+using Sixty.CameraSystem;
 using Sixty.Gameplay;
 using Ia.Core.Update;
 using UnityEngine;
@@ -37,6 +38,7 @@ namespace Sixty.Player
         [SerializeField] private string actionMapName = "Player";
         [SerializeField] private string moveActionName = "Move";
         [SerializeField] private string lookActionName = "Look";
+        [SerializeField] private string pointerActionName = "Point";
         [SerializeField] private string attackActionName = "Attack";
         [SerializeField] private string dashActionName = "Jump";
 
@@ -52,6 +54,7 @@ namespace Sixty.Player
         private InputActionMap playerMap;
         private InputAction moveAction;
         private InputAction lookAction;
+        private InputAction pointerAction;
         private InputAction attackAction;
         private InputAction dashAction;
 
@@ -68,6 +71,7 @@ namespace Sixty.Player
         private float externalMoveSpeedMultiplier = 1f;
         private readonly Collider[] aimAssistBuffer = new Collider[96];
         private bool combatInputLocked;
+        private TopDownCameraFollow aimCameraFollow;
 
         private bool IsDashing => dashTimer > 0f;
         
@@ -80,6 +84,11 @@ namespace Sixty.Player
             body = GetComponent<Rigidbody>();
             body.useGravity = true;
             body.constraints = RigidbodyConstraints.FreezeRotation;
+            if (body.interpolation == RigidbodyInterpolation.None)
+            {
+                body.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+
             lockedY = transform.position.y;
         }
 
@@ -221,6 +230,7 @@ namespace Sixty.Player
             playerMap = inputActions.FindActionMap(actionMapName, true);
             moveAction = playerMap.FindAction(moveActionName, true);
             lookAction = playerMap.FindAction(lookActionName, false);
+            pointerAction = inputActions.FindAction($"UI/{pointerActionName}", false);
             attackAction = playerMap.FindAction(attackActionName, true);
             dashAction = playerMap.FindAction(dashActionName, true);
         }
@@ -279,46 +289,200 @@ namespace Sixty.Player
             bool controllerHasRecentPriority = (Time.unscaledTime - controllerAimLastUsedAt) <= controllerAimPrioritySeconds;
             controllerAimActive = usedControllerAim || controllerHasRecentPriority;
 
-            if (!usedControllerAim && !controllerHasRecentPriority && Mouse.current != null && aimCamera != null)
+            bool usedMouseAim = false;
+            if (!usedControllerAim && !controllerHasRecentPriority && aimCamera != null)
             {
-                Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-                Ray mouseRay = aimCamera.ScreenPointToRay(mouseScreenPosition);
-                Plane movementPlane = new Plane(Vector3.up, transform.position);
-
-                if (movementPlane.Raycast(mouseRay, out float hitDistance))
+                Vector2 mouseScreenPosition = ReadPointerScreenPosition();
+                if (TryResolveMouseAim(mouseScreenPosition, deltaTime, out Vector3 mouseAim))
                 {
-                    Vector3 hitPoint = mouseRay.GetPoint(hitDistance);
-                    Vector3 toPoint = hitPoint - transform.position;
-                    toPoint.y = 0f;
-
-                    if (toPoint.sqrMagnitude > 0.0001f)
-                    {
-                        resolvedAim = toPoint.normalized;
-                        if (Mouse.current.delta.ReadValue().sqrMagnitude > 0.001f)
-                        {
-                            controllerAimLastUsedAt = -999f;
-                        }
-                    }
+                    resolvedAim = mouseAim;
+                    usedMouseAim = true;
+                    controllerAimLastUsedAt = -999f;
                 }
             }
 
-            if (!usedControllerAim && lookAction != null)
+            if (!usedControllerAim && !usedMouseAim)
             {
-                Vector2 lookInput = lookAction.ReadValue<Vector2>();
-                Vector3 fallbackAim = new Vector3(lookInput.x, 0f, lookInput.y);
-                if (fallbackAim.sqrMagnitude > 0.05f)
+                Vector2 lookInput = ReadNonPointerLookInput();
+                if (lookInput.sqrMagnitude > controllerAimDeadzone * controllerAimDeadzone)
                 {
+                    Vector3 fallbackAim = new Vector3(lookInput.x, 0f, lookInput.y);
                     resolvedAim = fallbackAim.normalized;
                 }
             }
 
             if (resolvedAim.sqrMagnitude > 0.0001f)
             {
-                AimDirection = Vector3.Slerp(AimDirection, resolvedAim.normalized, aimSmoothing * deltaTime).normalized;
+                if (controllerAimActive)
+                {
+                    AimDirection = Vector3.Slerp(AimDirection, resolvedAim.normalized, aimSmoothing * deltaTime).normalized;
+                }
+                else
+                {
+                    AimDirection = resolvedAim.normalized;
+                }
             }
 
             Transform targetPivot = aimPivot != null ? aimPivot : transform;
             targetPivot.rotation = Quaternion.LookRotation(AimDirection, Vector3.up);
+        }
+
+        private Vector3 GetPredictedAimOrigin(float deltaTime)
+        {
+            Vector3 origin = body != null ? body.position : transform.position;
+
+            if (deltaTime <= 0f)
+            {
+                return origin;
+            }
+
+            Vector3 moveDirection;
+            float desiredSpeed;
+
+            if (IsDashing)
+            {
+                moveDirection = dashDirection;
+                desiredSpeed = dashSpeed;
+            }
+            else
+            {
+                moveDirection = new Vector3(moveInput.x, 0f, moveInput.y);
+                if (moveDirection.sqrMagnitude > 1f)
+                {
+                    moveDirection.Normalize();
+                }
+
+                desiredSpeed = moveSpeed;
+            }
+
+            desiredSpeed *= Mathf.Max(0.1f, externalMoveSpeedMultiplier);
+            origin += moveDirection * desiredSpeed * deltaTime;
+            if (lockVerticalPosition)
+            {
+                origin.y = lockedY;
+            }
+
+            return origin;
+        }
+
+        private bool TryResolveMouseAim(Vector2 screenPosition, float deltaTime, out Vector3 aimDirection)
+        {
+            aimDirection = AimDirection;
+
+            if (aimCamera == null)
+            {
+                return false;
+            }
+
+            Ray mouseRay = BuildMouseAimRay(screenPosition);
+            Vector3 aimOrigin = GetPredictedAimOrigin(deltaTime);
+            Plane movementPlane = new Plane(Vector3.up, aimOrigin);
+
+            if (!movementPlane.Raycast(mouseRay, out float hitDistance))
+            {
+                return false;
+            }
+
+            Vector3 hitPoint = mouseRay.GetPoint(hitDistance);
+            Vector3 toPoint = hitPoint - aimOrigin;
+            toPoint.y = 0f;
+            if (toPoint.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            aimDirection = toPoint.normalized;
+            return true;
+        }
+
+        private Vector2 ReadPointerScreenPosition()
+        {
+            if (pointerAction != null)
+            {
+                Vector2 actionPosition = pointerAction.ReadValue<Vector2>();
+                if (actionPosition.sqrMagnitude > 0.001f)
+                {
+                    return actionPosition;
+                }
+            }
+
+            if (Mouse.current != null)
+            {
+                return Mouse.current.position.ReadValue();
+            }
+
+            return Vector2.zero;
+        }
+
+        private Vector2 ReadNonPointerLookInput()
+        {
+            if (lookAction == null)
+            {
+                return Vector2.zero;
+            }
+
+            InputControl activeControl = lookAction.activeControl;
+            if (activeControl != null)
+            {
+                InputDevice device = activeControl.device;
+                if (device is Mouse || device is Pointer)
+                {
+                    return Vector2.zero;
+                }
+            }
+
+            Vector2 lookInput = lookAction.ReadValue<Vector2>();
+            return lookInput;
+        }
+
+        private Ray BuildMouseAimRay(Vector2 screenPosition)
+        {
+            Vector3 cameraPosition = aimCamera.transform.position;
+            Quaternion cameraRotation = aimCamera.transform.rotation;
+
+            if (aimCameraFollow == null || aimCameraFollow.gameObject != aimCamera.gameObject)
+            {
+                aimCameraFollow = aimCamera.GetComponent<TopDownCameraFollow>();
+            }
+
+            if (aimCameraFollow != null &&
+                aimCameraFollow.isActiveAndEnabled &&
+                aimCameraFollow.TryGetPredictedPose(Time.deltaTime, out Vector3 predictedPosition, out Quaternion predictedRotation))
+            {
+                cameraPosition = predictedPosition;
+                cameraRotation = predictedRotation;
+            }
+
+            Rect pixelRect = aimCamera.pixelRect;
+            float viewportX = pixelRect.width > 0.001f ? (screenPosition.x - pixelRect.x) / pixelRect.width : 0.5f;
+            float viewportY = pixelRect.height > 0.001f ? (screenPosition.y - pixelRect.y) / pixelRect.height : 0.5f;
+            viewportX = Mathf.Clamp01(viewportX);
+            viewportY = Mathf.Clamp01(viewportY);
+
+            if (aimCamera.orthographic)
+            {
+                float halfHeight = aimCamera.orthographicSize;
+                float halfWidth = halfHeight * aimCamera.aspect;
+                Vector3 localOrigin = new Vector3(
+                    (viewportX - 0.5f) * 2f * halfWidth,
+                    (viewportY - 0.5f) * 2f * halfHeight,
+                    aimCamera.nearClipPlane);
+
+                return new Ray(
+                    cameraPosition + (cameraRotation * localOrigin),
+                    cameraRotation * Vector3.forward);
+            }
+
+            float nearClip = Mathf.Max(aimCamera.nearClipPlane, 0.01f);
+            float halfNearHeight = Mathf.Tan(aimCamera.fieldOfView * 0.5f * Mathf.Deg2Rad) * nearClip;
+            float halfNearWidth = halfNearHeight * aimCamera.aspect;
+            Vector3 localPoint = new Vector3(
+                (viewportX - 0.5f) * 2f * halfNearWidth,
+                (viewportY - 0.5f) * 2f * halfNearHeight,
+                nearClip);
+            Vector3 worldDirection = (cameraRotation * localPoint).normalized;
+            Vector3 worldOrigin = cameraPosition + (cameraRotation * localPoint);
+            return new Ray(worldOrigin, worldDirection);
         }
 
         private Vector3 ResolveFireDirection(Vector3 rawDirection, bool usingControllerAim)

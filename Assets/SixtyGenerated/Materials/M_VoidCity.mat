@@ -26,18 +26,18 @@ Material:
     m_Ints: []
     m_Floats:
     - _AmbientStrength: 0.35
-    - _CavityStrength: 0.94
-    - _CavityWidth: 0.015
+    - _CavityStrength: 0.28
+    - _CavityWidth: 0.03
     - _GlowIntensity: 4
     - _NoiseScale: 0.04
     - _NoiseStrength: 0.45
-    - _TriangleBrightness: 2.07
-    - _TriangleDensity: 0.766
-    - _TriangleScale: 0.15
+    - _TriangleBrightness: 1.49
+    - _TriangleDensity: 1
+    - _TriangleScale: -0.39
     m_Colors:
-    - _BaseColor: {r: 0.06, g: 0.07, b: 0.09, a: 1}
-    - _CavityColor: {r: 0.4716981, g: 0.4716981, b: 0.4716981, a: 1}
+    - _BaseColor: {r: 0.2264151, g: 0.2264151, b: 0.2264151, a: 1}
+    - _CavityColor: {r: 0.262, g: 0.262, b: 0.262, a: 1}
     - _GlowColor: {r: 0.4, g: 0.85, b: 0.95, a: 1}
-    - _TopColor: {r: 0.21555711, g: 0.23175506, b: 0.26415092, a: 1}
+    - _TopColor: {r: 0.103773594, g: 0.103773594, b: 0.103773594, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

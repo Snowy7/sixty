@@ -1,4 +1,5 @@
 using Sixty.Rendering;
+using Sixty.UI;
 using Sixty.World;
 using UnityEngine;
 
@@ -62,6 +63,10 @@ namespace Sixty.Gameplay
             {
                 player.transform.position = arenaBuilder.RoomAnchors[0].position + new Vector3(0f, 0.95f, 0f);
             }
+
+            // Fade in from black on scene start
+            SceneTransitionOverlay.EnsureInstance();
+            SceneTransitionOverlay.Instance?.FadeIn();
         }
     }
 }
